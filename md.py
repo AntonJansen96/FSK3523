@@ -25,32 +25,22 @@ def init_velocity(T, numParticles, mass):
 
     return np.array(velocities)
 
-
-
-
 def get_accelerations(positions):
-    """
-    Calculate the acceleration on each particle
-    as a  result of each other particle. 
-    N.B. We use the Python convention of 
-    numbering from 0.
+    def reduce(forcegrid):
+        reduced = len(forcegrid) * [0]
+
+        for i in range(0, len(forcegrid)):
+            for j in range(0, len(forcegrid)):
+                reduced[i] += forcegrid[j][i]
+
+        return reduced
+
+    positions = list(positions)
     
-    Parameters
-    ----------
-    positions: ndarray of floats
-        The positions, in a single dimension, 
-        for all of the particles
+    accel_x = [[0] * len(positions) for i in range(len(positions))]
         
-    Returns
-    -------
-    ndarray of floats
-        The acceleration on each
-        particle (eV/Åamu)
-    """
-    accel_x = np.zeros((positions.size, positions.size))
-    
-    for i in range(0, positions.size - 1):
-        for j in range(i + 1, positions.size):
+    for i in range(0, len(positions) - 1):
+        for j in range(i + 1, len(positions)):
             
             r_x = positions[j] - positions[i]
             
@@ -60,10 +50,12 @@ def get_accelerations(positions):
             
             force_x = force_scalar * r_x / rmag
             
-            accel_x[i, j] =   force_x / m_argon
-            accel_x[j, i] = - force_x / m_argon
+            accel_x[i][j] =   force_x / m_argon
+            accel_x[j][i] = - force_x / m_argon
+
+    accels = reduce(accel_x)
     
-    return np.sum(accel_x, axis=0)
+    return np.array(accels)
 
 def update_pos(x, v, a, dt):
     """
