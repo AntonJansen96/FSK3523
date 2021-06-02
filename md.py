@@ -63,6 +63,17 @@ def integrator(x, v, a, a_new, dt):
 
     return x_new, v_new, a_new
 
+# Write coordinates to a .pdb trajectory file
+def writeFrame(x, step):
+    with open("traj.pdb", "a+") as file:
+        
+        file.write("MODEL        {}\n".format(step))
+        
+        for idx in range(0, len(x)):
+            file.write("{:6s}{:5d} {:^4s}{:1s}{:4s}{:1s}{:4d}{:1s}   {:8.3f}{:8.3f}{:8.3f}\n".format('ATOM', idx + 1, 'ARG', ' ', 'ARG', ' ', idx + 1, ' ', x[idx], 0.0, 0.0))
+        
+        file.write('TER\nENDMDL\n')
+
 # Run MD simulation.
 def run_md(dt, nsteps, T, x, mass):
     positionList = [x]
@@ -75,7 +86,7 @@ def run_md(dt, nsteps, T, x, mass):
     # Initial acceleration is zero.
     a = len(x) * [0]
     
-    for _ in range(nsteps):
+    for step in range(nsteps):
 
         # 2 COMPUTE FORCE
         a_new = get_accelerations(x, mass)
@@ -85,6 +96,7 @@ def run_md(dt, nsteps, T, x, mass):
 
         # 4 OUTPUT STEP
         positionList.append(x)
+        writeFrame(x, step + 1)
 
     return positionList
 
