@@ -4,8 +4,23 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 class constants:
+    R   = 8.3144621       # J/mol/K
+    N   = 6.02214129e23   # 1/mol
     k_b = 1.380649e-23    # J/K
     e   = 1.602176634e-19 # C
+    u   = 1.660539066e-27 # kg
+
+class Atom:
+    def __init__(self, idx, name, x, mass, charge, lj_eps, lj_sigma):
+        self.idx        = idx
+        self.name       = name
+        self.mass       = mass
+        self.charge     = charge
+        self.lj_epsilon = lj_eps
+        self.lj_sigma   = lj_sigma
+        self.x          = x
+        self.v          = [0, 0, 0]
+        self.a          = [0, 0, 0]
 
 def lennard_jones_force(r, epsilon, sigma):
     repulsive  = 48 * epsilon * sigma**12 / r**13
