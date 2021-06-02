@@ -58,82 +58,12 @@ def get_accelerations(positions):
     return np.array(accels)
 
 def update_pos(x, v, a, dt):
-    """
-    Update the particle positions.
-    
-    Parameters
-    ----------
-    x: ndarray of floats
-        The positions of the particles in a 
-        single dimension
-    v: ndarray of floats
-        The velocities of the particles in a 
-        single dimension
-    a: ndarray of floats
-        The accelerations of the particles in a 
-        single dimension
-    dt: float
-        The timestep length
-    
-    Returns
-    -------
-    ndarray of floats:
-        New positions of the particles in a single 
-        dimension
-    """
     return x + v * dt + 0.5 * a * dt * dt
 
 def update_velo(v, a, a1, dt):
-    """
-    Update the particle velocities.
-    
-    Parameters
-    ----------
-    v: ndarray of floats
-        The velocities of the particles in a 
-        single dimension (eVs/Åamu)
-    a: ndarray of floats
-        The accelerations of the particles in a 
-        single dimension at the previous 
-        timestep (eV/Åamu)
-    a1: ndarray of floats
-        The accelerations of the particles in a
-        single dimension at the current 
-        timestep (eV/Åamu)
-    dt: float
-        The timestep length
-    
-    Returns
-    -------
-    ndarray of floats:
-        New velocities of the particles in a
-        single dimension (eVs/Åamu)
-    """
     return v + 0.5 * (a + a1) * dt
 
 def run_md(dt, number_of_steps, initial_temp, x, mass):
-    """
-    Run a MD simulation.
-    
-    Parameters
-    ----------
-    dt: float
-        The timestep length (s)
-    number_of_steps: int
-        Number of iterations in the simulation
-    initial_temp: float
-        Temperature of the system at 
-        initialisation (K)
-    x: ndarray of floats
-        The initial positions of the particles in a 
-        single dimension (Å)
-        
-    Returns
-    -------
-    ndarray of floats
-        The positions for all of the particles 
-        throughout the simulation (Å)
-    """
     positions = np.zeros((number_of_steps, 3))
     v = init_velocity(initial_temp, 3, mass)
     a = get_accelerations(x)
@@ -145,9 +75,13 @@ def run_md(dt, number_of_steps, initial_temp, x, mass):
         positions[i, :] = x
     return positions
 
-x = np.array([1, 5, 10])
-sim_pos = run_md(0.1, 10000, 300, x, m_argon)
-    
+# MAIN #########################################################################
+
+# pos            dt  nsteps  T       coordinates      argonmass                                    
+sim_pos = run_md(0.1, 10000, 300, np.array([1, 5, 10]), m_argon)
+
+# PLOTTING #####################################################################
+
 for i in range(sim_pos.shape[1]):
     plt.plot(sim_pos[:, i], '.', label='atom {}'.format(i))
 plt.xlabel(r'Step')
