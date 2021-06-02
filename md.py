@@ -1,15 +1,12 @@
 #!/bin/python3
 
-# MODULES
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.constants.constants import Boltzmann
 
-# CONSTANTS
-m_argon = 39.948
-k_b = 1.380649e-23
+class constants:
+    k_b = 1.380649e-23    # J/K
+    e   = 1.602176634e-19 # C
 
-# FORCES
 def lennard_jones_force(r, epsilon, sigma):
     repulsive  = 48 * epsilon * sigma**12 / r**13
     attractive = 24 * epsilon * sigma**6  / r**7
@@ -17,7 +14,7 @@ def lennard_jones_force(r, epsilon, sigma):
     return repulsive - attractive
 
 def init_velocity(T, numParticles, mass):
-    Boltzmann_factor = ((k_b * T) / (mass * 1.602e-19))**0.5
+    Boltzmann_factor = ((constants.k_b * T) / (mass * constants.e))**0.5
     
     velocities = numParticles * [0]
     for idx in range(0, numParticles):
@@ -25,7 +22,7 @@ def init_velocity(T, numParticles, mass):
 
     return velocities
 
-def get_accelerations(positions):
+def get_accelerations(positions, mass):
     def reduce(forcegrid):
         reduced = len(forcegrid) * [0]
 
@@ -34,8 +31,6 @@ def get_accelerations(positions):
                 reduced[i] += forcegrid[j][i]
 
         return reduced
-
-    positions = list(positions)
     
     accel_x = [[0] * len(positions) for i in range(len(positions))]
         
@@ -50,52 +45,52 @@ def get_accelerations(positions):
             
             force_x = force_scalar * r_x / rmag
             
-            accel_x[i][j] =   force_x / m_argon
-            accel_x[j][i] = - force_x / m_argon
+            accel_x[i][j] =   force_x / mass
+            accel_x[j][i] = - force_x / mass
 
     accels = reduce(accel_x)
     
     return accels
 
-def update_pos(x, v, a, dt):
+# Velocity-Verlet integrator.
+def integrator(x, v, a, a_new, dt):
     x_new = len(x) * [0]
+    v_new = len(x) * [0]
     
     for i in range(0, len(x)):
         x_new[i] = x[i] + v[i] * dt + 0.5 * a[i] * dt * dt
+        v_new[i] = v[i] + 0.5 * (a[i] + a_new[i]) * dt
 
-    return x_new
+    return x_new, v_new, a_new
 
-def update_velo(v, a, a1, dt):
-    v_new = len(v) * [0]
-
-    for i in range(0, len(v)):
-        v_new[i] = v[i] + 0.5 * (a[i] + a1[i]) * dt
-
-    return v_new
-
-def run_md(dt, number_of_steps, initial_temp, x, mass):
+# Run MD simulation.
+def run_md(dt, nsteps, T, x, mass):
     positionList = [x]
 
-    # Generate velocities and first acceleration    
-    v = init_velocity(initial_temp, len(x), mass)
-    a = get_accelerations(x)
+    # 1 INPUT INITIAL CONDITIONS
     
-    for i in range(number_of_steps):
-        x = update_pos(x, v, a, dt)
-        a1 = get_accelerations(x)
-        v = update_velo(v, a, a1, dt)
-        a = a1
+    # Initial velocity from Maxwell-Boltzmann distribution.
+    v = init_velocity(T=T, numParticles=len(x), mass=mass)
+    
+    # Initial acceleration is zero.
+    a = len(x) * [0]
+    
+    for _ in range(nsteps):
 
+        # 2 COMPUTE FORCE
+        a_new = get_accelerations(x, mass)
+
+        # 3 UPDATE CONFIGURATION
+        x, v, a = integrator(x, v, a, a_new, dt)
+
+        # 4 OUTPUT STEP
         positionList.append(x)
 
     return positionList
 
 # MAIN #########################################################################
 
-# pos            dt  nsteps  T       coordinates      argonmass                                    
-sim_pos = run_md(0.1, 10000, 300, [1, 5, 10], m_argon)
-
-# PLOTTING #####################################################################
+sim_pos = run_md(dt=0.1, nsteps=10000, T=300, x=[1, 5, 10], mass=39.948)
 
 atom1 = len(sim_pos) * [0]
 atom2 = len(sim_pos) * [0]
