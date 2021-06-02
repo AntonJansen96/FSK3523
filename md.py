@@ -23,7 +23,7 @@ def init_velocity(T, numParticles, mass):
     for idx in range(0, numParticles):
         velocities[idx] = Boltzmann_factor * (np.random.rand() - 0.5)
 
-    return np.array(velocities)
+    return velocities
 
 def get_accelerations(positions):
     def reduce(forcegrid):
@@ -44,7 +44,7 @@ def get_accelerations(positions):
             
             r_x = positions[j] - positions[i]
             
-            rmag = np.sqrt(r_x * r_x)
+            rmag = (r_x**2)**0.5
             
             force_scalar = lennard_jones_force(rmag, 0.0103, 3.4)
             
@@ -55,35 +55,61 @@ def get_accelerations(positions):
 
     accels = reduce(accel_x)
     
-    return np.array(accels)
+    return accels
 
 def update_pos(x, v, a, dt):
-    return x + v * dt + 0.5 * a * dt * dt
+    x_new = len(x) * [0]
+    
+    for i in range(0, len(x)):
+        x_new[i] = x[i] + v[i] * dt + 0.5 * a[i] * dt * dt
+
+    return x_new
 
 def update_velo(v, a, a1, dt):
-    return v + 0.5 * (a + a1) * dt
+    v_new = len(v) * [0]
+
+    for i in range(0, len(v)):
+        v_new[i] = v[i] + 0.5 * (a[i] + a1[i]) * dt
+
+    return v_new
 
 def run_md(dt, number_of_steps, initial_temp, x, mass):
-    positions = np.zeros((number_of_steps, 3))
-    v = init_velocity(initial_temp, 3, mass)
+    positionList = [x]
+
+    # Generate velocities and first acceleration    
+    v = init_velocity(initial_temp, len(x), mass)
     a = get_accelerations(x)
+    
     for i in range(number_of_steps):
         x = update_pos(x, v, a, dt)
         a1 = get_accelerations(x)
         v = update_velo(v, a, a1, dt)
-        a = np.array(a1)
-        positions[i, :] = x
-    return positions
+        a = a1
+
+        positionList.append(x)
+
+    return positionList
 
 # MAIN #########################################################################
 
 # pos            dt  nsteps  T       coordinates      argonmass                                    
-sim_pos = run_md(0.1, 10000, 300, np.array([1, 5, 10]), m_argon)
+sim_pos = run_md(0.1, 10000, 300, [1, 5, 10], m_argon)
 
 # PLOTTING #####################################################################
 
-for i in range(sim_pos.shape[1]):
-    plt.plot(sim_pos[:, i], '.', label='atom {}'.format(i))
+atom1 = len(sim_pos) * [0]
+atom2 = len(sim_pos) * [0]
+atom3 = len(sim_pos) * [0]
+
+for i in range(0, len(sim_pos)):
+    atom1[i] = sim_pos[i][0]
+    atom2[i] = sim_pos[i][1]
+    atom3[i] = sim_pos[i][2]
+
+plt.plot(atom1, '.', label='atom 1')
+plt.plot(atom2, '.', label='atom 2')
+plt.plot(atom3, '.', label='atom 3')
+
 plt.xlabel(r'Step')
 plt.ylabel(r'$x$-Position/Å')
 plt.legend(frameon=False)
