@@ -53,25 +53,41 @@ def get_accelerations(AtomList):
         return reduced
     
     accel_x = [[0] * len(AtomList) for i in range(len(AtomList))]
+    accel_y = [[0] * len(AtomList) for i in range(len(AtomList))]
+    accel_z = [[0] * len(AtomList) for i in range(len(AtomList))]
         
     for i in range(0, len(AtomList) - 1):
         for j in range(i + 1, len(AtomList)):
             
-            r_x = AtomList[j].x - AtomList[i].x
+            r_x = AtomList[j].x[0] - AtomList[i].x[0]
+            r_y = AtomList[j].x[1] - AtomList[i].x[1]
+            r_z = AtomList[j].x[2] - AtomList[i].x[2]
 
-            rmag = (r_x**2)**0.5
+            rmag = (r_x**2 + r_y**2 + r_z**2)**0.5
             
             force_scalar = LJ_force(rmag, AtomList[i].lj_epsilon, AtomList[i].lj_sigma)
 
             force_x = force_scalar * r_x / rmag
+            force_y = force_scalar * r_y / rmag
+            force_z = force_scalar * r_z / rmag
             
             accel_x[i][j] =   force_x / AtomList[i].mass
             accel_x[j][i] = - force_x / AtomList[j].mass
 
-    accels = reduce(accel_x)
+            accel_y[i][j] =   force_y / AtomList[i].mass
+            accel_y[j][i] = - force_y / AtomList[j].mass
+
+            accel_z[i][j] =   force_z / AtomList[i].mass
+            accel_z[j][i] = - force_z / AtomList[j].mass
+
+    reduced_x = reduce(accel_x)
+    reduced_y = reduce(accel_y)
+    reduced_z = reduce(accel_z)
     
     for i in range(0, len(AtomList)):
-        AtomList[i].a_new = accels[i]
+        AtomList[i].a_new[0] = reduced_x[i]
+        AtomList[i].a_new[1] = reduced_y[i]
+        AtomList[i].a_new[2] = reduced_z[i]
 
 # Velocity-Verlet integrator.
 def integrate(AtomList, dt):
@@ -115,7 +131,7 @@ def run_md(AtomList, dt, nsteps, T):
 
     for step in range(nsteps):
         # 2 COMPUTE FORCE
-        # get_accelerations(AtomList)
+        get_accelerations(AtomList)
 
         # 3 UPDATE CONFIGURATION
         integrate(AtomList, dt)
