@@ -2,6 +2,7 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
+import time
 
 class constants:
     N  = 6.02214129e23   # mol^-1
@@ -65,32 +66,33 @@ def get_accelerations(AtomList, boxsize):
     for i in range(0, len(AtomList) - 1):
         for j in range(i + 1, len(AtomList)):
             
+            # Get the distance in each dimension.
             r_x = AtomList[j].x[0] - AtomList[i].x[0]
             r_y = AtomList[j].x[1] - AtomList[i].x[1]
             r_z = AtomList[j].x[2] - AtomList[i].x[2]
 
-            # Periodic boundary condition
-            r_x = r_x - np.round(r_x / boxsize[0]) * boxsize[0]
-            r_y = r_y - np.round(r_y / boxsize[1]) * boxsize[1]
-            r_z = r_z - np.round(r_z / boxsize[2]) * boxsize[2]
+            # Apply periodic boundary condition.
+            if (r_x  >  0.5 * boxsize[0]): r_x -= boxsize[0]
+            if (r_x <= -0.5 * boxsize[0]): r_x += boxsize[0]
 
-            # if r_x >   0.5 * boxsize[0]: r_x = r_x - boxsize[0]
-            # if r_x <= -0.5 * boxsize[0]: r_x = r_x + boxsize[0]
-            
-            # if r_y >   0.5 * boxsize[1]: r_y = r_y - boxsize[1]
-            # if r_y <= -0.5 * boxsize[1]: r_y = r_y + boxsize[1]
-            
-            # if r_z >   0.5 * boxsize[2]: r_z = r_z - boxsize[2]
-            # if r_z <= -0.5 * boxsize[2]: r_z = r_z + boxsize[2]
+            if (r_y  >  0.5 * boxsize[1]): r_y -= boxsize[1]
+            if (r_y <= -0.5 * boxsize[1]): r_y += boxsize[1]
 
+            if (r_z  >  0.5 * boxsize[2]): r_z -= boxsize[2]
+            if (r_z <= -0.5 * boxsize[2]): r_z += boxsize[2]
+
+            # Compute distance.
             rmag = (r_x**2 + r_y**2 + r_z**2)**0.5
             
+            # Compute force.
             force_scalar = LJ_force(rmag, AtomList[i].lj_epsilon, AtomList[i].lj_sigma)
 
+            # Decompose force.
             force_x = force_scalar * r_x / rmag
             force_y = force_scalar * r_y / rmag
             force_z = force_scalar * r_z / rmag
             
+            # Fill the force grid.
             accel_x[i][j] =   force_x / AtomList[i].mass
             accel_x[j][i] = - force_x / AtomList[j].mass
 
@@ -100,10 +102,12 @@ def get_accelerations(AtomList, boxsize):
             accel_z[i][j] =   force_z / AtomList[i].mass
             accel_z[j][i] = - force_z / AtomList[j].mass
 
+    # Reduce forces.
     reduced_x = reduce(accel_x)
     reduced_y = reduce(accel_y)
     reduced_z = reduce(accel_z)
     
+    # Update.
     for i in range(0, len(AtomList)):
         AtomList[i].a_new[0] = reduced_x[i]
         AtomList[i].a_new[1] = reduced_y[i]
@@ -112,32 +116,27 @@ def get_accelerations(AtomList, boxsize):
 # Velocity-Verlet integrator.
 def integrate(AtomList, dt, boxsize):
     for Atom in AtomList:
+        # Update positions.
         Atom.x[0] += Atom.v[0] * dt + 0.5 * Atom.a[0] * dt * dt
         Atom.x[1] += Atom.v[1] * dt + 0.5 * Atom.a[1] * dt * dt
         Atom.x[2] += Atom.v[2] * dt + 0.5 * Atom.a[2] * dt * dt
 
-        # Periodic boundary condition
-        # if Atom.x[0] < -0.5 * boxsize[0]: Atom.x[0] = Atom.x[0] + boxsize[0]
-        # if Atom.x[0] >= 0.5 * boxsize[0]: Atom.x[0] = Atom.x[0] - boxsize[0]
+        # Apply periodic boundary condition.
+        if (Atom.x[0] > boxsize[0]): Atom.x[0] -= boxsize[0]
+        if (Atom.x[0] < 0         ): Atom.x[0] += boxsize[0]
+        
+        if (Atom.x[1] > boxsize[1]): Atom.x[1] -= boxsize[1]
+        if (Atom.x[1] < 0         ): Atom.x[1] += boxsize[1]
 
-        # if Atom.x[1] < -0.5 * boxsize[1]: Atom.x[1] = Atom.x[1] + boxsize[1]
-        # if Atom.x[1] >= 0.5 * boxsize[1]: Atom.x[1] = Atom.x[1] - boxsize[1]
+        if (Atom.x[2] > boxsize[2]): Atom.x[2] -= boxsize[2]
+        if (Atom.x[2] < 0         ): Atom.x[2] += boxsize[2]
 
-        # if Atom.x[2] < -0.5 * boxsize[2]: Atom.x[2] = Atom.x[2] + boxsize[2]
-        # if Atom.x[2] >= 0.5 * boxsize[2]: Atom.x[2] = Atom.x[2] - boxsize[2]
-
-        Atom.x[0] = Atom.x[0] - np.floor(Atom.x[0] / boxsize[0]) * boxsize[0]
-        Atom.x[1] = Atom.x[1] - np.floor(Atom.x[1] / boxsize[1]) * boxsize[1]
-        Atom.x[2] = Atom.x[2] - np.floor(Atom.x[2] / boxsize[2]) * boxsize[2]
-
-        # Atom.x[0] %= boxsize[0]
-        # Atom.x[1] %= boxsize[1]
-        # Atom.x[2] %= boxsize[2]
-
+        # Update velocities.
         Atom.v[0] += 0.5 * (Atom.a[0] + Atom.a_new[0]) * dt
         Atom.v[1] += 0.5 * (Atom.a[1] + Atom.a_new[1]) * dt
         Atom.v[2] += 0.5 * (Atom.a[2] + Atom.a_new[2]) * dt
         
+        # Update accelerations.
         Atom.a[0] = Atom.a_new[0]
         Atom.a[1] = Atom.a_new[1]
         Atom.a[2] = Atom.a_new[2]
@@ -178,19 +177,27 @@ def run_md(AtomList, dt, nsteps, T, boxsize):
         # 4 OUTPUT STEP
         if (step % 100 == 0):
             writeFrame(step + 1, AtomList, boxsize)
-        positionList.append([Atom.x[0] for Atom in AtomList])
+            positionList.append([Atom.x[0] for Atom in AtomList])
 
     return positionList
 
 # MAIN #########################################################################
 
+np.random.seed(1) # for testing
+
 AtomList = [
-    Atom(1, 'ARG', [1.0, 0, 0], 39.948, 0, 0.0103, 3.4),
-    Atom(2, 'ARG', [5.0, 0, 0], 39.948, 0, 0.0103, 3.4),
-    Atom(3, 'ARG', [9.0, 0, 0], 39.948, 0, 0.0103, 3.4)
+    Atom(1, 'ARG', [1.0, 1, 0], 39.948, 0, 0.0103, 3.4),
+    Atom(2, 'ARG', [5.0, 1, 0], 39.948, 0, 0.0103, 3.4),
+    Atom(3, 'ARG', [9.0, 1, 0], 39.948, 0, 0.0103, 3.4)
     ]
 
+tic = time.perf_counter()
+
 sim_pos = run_md(AtomList=AtomList, dt=0.1, nsteps=200000, T=300, boxsize=[30.0, 30.0, 30.0])
+
+toc = time.perf_counter()
+
+print("time = {:.4f}".format(toc - tic))
 
 atom1 = len(sim_pos) * [0]
 atom2 = len(sim_pos) * [0]
