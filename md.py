@@ -4,11 +4,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 class constants:
-    R   = 8.3144621       # J/mol/K
-    N   = 6.02214129e23   # 1/mol
-    k_b = 1.380649e-23    # J/K
-    e   = 1.602176634e-19 # C
-    u   = 1.660539066e-27 # kg
+    N  = 6.02214129e23   # mol^-1
+    kB = 1.380649e-23    # J/K
+    R  = N * kB          # J/mol/K  
+    e0 = 8.854187813e-12 # Farad/m
+    e  = 1.602176634e-19 # C
+    u  = 1.660539066e-27 # kg
 
 class Atom:
     def __init__(self, idx, name, x, mass, charge, lj_epsilon, lj_sigma):
@@ -24,17 +25,22 @@ class Atom:
         self.a_new      = [0, 0, 0]
 
 def LJ_force(r, epsilon, sigma):
-    repulsive  = 48 * epsilon * sigma**12 / r**13
-    attractive = 24 * epsilon * sigma**6  / r**7
+    LJ_cutoff = 12 # Angstrom = 1.2nm, hardcoded.
+    
+    if (r < LJ_cutoff):
+        repulsive  = 48 * epsilon * sigma**12 / r**13
+        attractive = 24 * epsilon * sigma**6  / r**7
 
-    return repulsive - attractive
+        return repulsive - attractive
+
+    return 0
 
 def generate_velocities(AtomList, T):
     # Not sure if this is exactly correct.
     # Maybe some sqrt(3/2) is still missing?
     # See https://manual.gromacs.org/current/reference-manual/algorithms/molecular-dynamics.html#coordinates-and-velocities
     for Atom in AtomList:
-        BoltzmannFactor = constants.k_b * T
+        BoltzmannFactor = constants.kB * T
         BoltzmannFactor = BoltzmannFactor / (Atom.mass * constants.e)
         BoltzmannFactor = BoltzmannFactor**0.5
 
@@ -42,7 +48,7 @@ def generate_velocities(AtomList, T):
         Atom.v[1] = BoltzmannFactor * (np.random.rand() - 0.5)
         Atom.v[2] = BoltzmannFactor * (np.random.rand() - 0.5)
 
-def get_accelerations(AtomList):
+def get_accelerations(AtomList, boxsize):
     def reduce(forcegrid):
         reduced = len(forcegrid) * [0]
 
@@ -62,6 +68,20 @@ def get_accelerations(AtomList):
             r_x = AtomList[j].x[0] - AtomList[i].x[0]
             r_y = AtomList[j].x[1] - AtomList[i].x[1]
             r_z = AtomList[j].x[2] - AtomList[i].x[2]
+
+            # Periodic boundary condition
+            r_x = r_x - np.round(r_x / boxsize[0]) * boxsize[0]
+            r_y = r_y - np.round(r_y / boxsize[1]) * boxsize[1]
+            r_z = r_z - np.round(r_z / boxsize[2]) * boxsize[2]
+
+            # if r_x >   0.5 * boxsize[0]: r_x = r_x - boxsize[0]
+            # if r_x <= -0.5 * boxsize[0]: r_x = r_x + boxsize[0]
+            
+            # if r_y >   0.5 * boxsize[1]: r_y = r_y - boxsize[1]
+            # if r_y <= -0.5 * boxsize[1]: r_y = r_y + boxsize[1]
+            
+            # if r_z >   0.5 * boxsize[2]: r_z = r_z - boxsize[2]
+            # if r_z <= -0.5 * boxsize[2]: r_z = r_z + boxsize[2]
 
             rmag = (r_x**2 + r_y**2 + r_z**2)**0.5
             
@@ -90,11 +110,29 @@ def get_accelerations(AtomList):
         AtomList[i].a_new[2] = reduced_z[i]
 
 # Velocity-Verlet integrator.
-def integrate(AtomList, dt):
+def integrate(AtomList, dt, boxsize):
     for Atom in AtomList:
         Atom.x[0] += Atom.v[0] * dt + 0.5 * Atom.a[0] * dt * dt
         Atom.x[1] += Atom.v[1] * dt + 0.5 * Atom.a[1] * dt * dt
         Atom.x[2] += Atom.v[2] * dt + 0.5 * Atom.a[2] * dt * dt
+
+        # Periodic boundary condition
+        # if Atom.x[0] < -0.5 * boxsize[0]: Atom.x[0] = Atom.x[0] + boxsize[0]
+        # if Atom.x[0] >= 0.5 * boxsize[0]: Atom.x[0] = Atom.x[0] - boxsize[0]
+
+        # if Atom.x[1] < -0.5 * boxsize[1]: Atom.x[1] = Atom.x[1] + boxsize[1]
+        # if Atom.x[1] >= 0.5 * boxsize[1]: Atom.x[1] = Atom.x[1] - boxsize[1]
+
+        # if Atom.x[2] < -0.5 * boxsize[2]: Atom.x[2] = Atom.x[2] + boxsize[2]
+        # if Atom.x[2] >= 0.5 * boxsize[2]: Atom.x[2] = Atom.x[2] - boxsize[2]
+
+        Atom.x[0] = Atom.x[0] - np.floor(Atom.x[0] / boxsize[0]) * boxsize[0]
+        Atom.x[1] = Atom.x[1] - np.floor(Atom.x[1] / boxsize[1]) * boxsize[1]
+        Atom.x[2] = Atom.x[2] - np.floor(Atom.x[2] / boxsize[2]) * boxsize[2]
+
+        # Atom.x[0] %= boxsize[0]
+        # Atom.x[1] %= boxsize[1]
+        # Atom.x[2] %= boxsize[2]
 
         Atom.v[0] += 0.5 * (Atom.a[0] + Atom.a_new[0]) * dt
         Atom.v[1] += 0.5 * (Atom.a[1] + Atom.a_new[1]) * dt
@@ -105,10 +143,11 @@ def integrate(AtomList, dt):
         Atom.a[2] = Atom.a_new[2]
 
 # Write coordinates to a .pdb trajectory file
-def writeFrame(AtomList, step):
+def writeFrame(step, AtomList, boxsize):
     with open("traj.pdb", "a+") as file:
         
         file.write("MODEL        {}\n".format(step))
+        file.write("CRYST1  {:7.3f}  {:7.3f}  {:7.3f}  90.00  90.00  90.00 P 1           1\n".format(boxsize[0], boxsize[1], boxsize[2]))
         
         for Atom in AtomList:
             file.write("{:6s}{:5d} {:^4s}{:1s}{:4s}{:1s}{:4d}{:1s}   {:8.3f}{:8.3f}{:8.3f}\n".format('ATOM', Atom.idx, Atom.name, '', Atom.name, '', Atom.idx, '', Atom.x[0], Atom.x[1], Atom.x[2]))
@@ -116,7 +155,7 @@ def writeFrame(AtomList, step):
         file.write('TER\nENDMDL\n')
 
 # Run MD simulation.
-def run_md(AtomList, dt, nsteps, T):
+def run_md(AtomList, dt, nsteps, T, boxsize):
     # 1 INPUT INITIAL CONDITIONS
 
         # Initialize list of positions for old output function.
@@ -131,13 +170,14 @@ def run_md(AtomList, dt, nsteps, T):
 
     for step in range(nsteps):
         # 2 COMPUTE FORCE
-        get_accelerations(AtomList)
+        get_accelerations(AtomList, boxsize)
 
         # 3 UPDATE CONFIGURATION
-        integrate(AtomList, dt)
+        integrate(AtomList, dt, boxsize)
 
         # 4 OUTPUT STEP
-        writeFrame(AtomList, step + 1)
+        if (step % 100 == 0):
+            writeFrame(step + 1, AtomList, boxsize)
         positionList.append([Atom.x[0] for Atom in AtomList])
 
     return positionList
@@ -150,7 +190,7 @@ AtomList = [
     Atom(3, 'ARG', [9.0, 0, 0], 39.948, 0, 0.0103, 3.4)
     ]
 
-sim_pos = run_md(AtomList=AtomList, dt=0.1, nsteps=10000, T=300)
+sim_pos = run_md(AtomList=AtomList, dt=0.1, nsteps=200000, T=300, boxsize=[30.0, 30.0, 30.0])
 
 atom1 = len(sim_pos) * [0]
 atom2 = len(sim_pos) * [0]
