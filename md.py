@@ -3,14 +3,15 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import time
+import load
 
 class constants:
-    N  = 6.02214129e23   # mol^-1
-    kB = 1.380649e-23    # J/K
-    R  = N * kB          # J/mol/K  
-    e0 = 8.854187813e-12 # Farad/m
-    e  = 1.602176634e-19 # C
-    u  = 1.660539066e-27 # kg
+    N   = 6.02214129e23   # mol^-1
+    kB  = 1.380649e-23    # J/K
+    R   = N * kB          # J/mol/K  
+    e0  = 8.854187813e-12 # Farad/m
+    e   = 1.602176634e-19 # C
+    amu = 1.660539066e-27 # kg
 
 class Atom:
     def __init__(self, idx, name, x, mass, charge, lj_epsilon, lj_sigma):
@@ -58,14 +59,14 @@ def get_accelerations(AtomList, boxsize):
                 reduced[i] += forcegrid[j][i]
 
         return reduced
-    
+
     accel_x = [[0] * len(AtomList) for i in range(len(AtomList))]
     accel_y = [[0] * len(AtomList) for i in range(len(AtomList))]
     accel_z = [[0] * len(AtomList) for i in range(len(AtomList))]
-        
+
     for i in range(0, len(AtomList) - 1):
         for j in range(i + 1, len(AtomList)):
-            
+
             # Get the distance in each dimension.
             r_x = AtomList[j].x[0] - AtomList[i].x[0]
             r_y = AtomList[j].x[1] - AtomList[i].x[1]
@@ -83,7 +84,7 @@ def get_accelerations(AtomList, boxsize):
 
             # Compute distance.
             rmag = (r_x**2 + r_y**2 + r_z**2)**0.5
-            
+
             # Compute force.
             force_scalar = LJ_force(rmag, AtomList[i].lj_epsilon, AtomList[i].lj_sigma)
 
@@ -91,7 +92,7 @@ def get_accelerations(AtomList, boxsize):
             force_x = force_scalar * r_x / rmag
             force_y = force_scalar * r_y / rmag
             force_z = force_scalar * r_z / rmag
-            
+
             # Fill the force grid.
             accel_x[i][j] =   force_x / AtomList[i].mass
             accel_x[j][i] = - force_x / AtomList[j].mass
@@ -106,7 +107,7 @@ def get_accelerations(AtomList, boxsize):
     reduced_x = reduce(accel_x)
     reduced_y = reduce(accel_y)
     reduced_z = reduce(accel_z)
-    
+
     # Update.
     for i in range(0, len(AtomList)):
         AtomList[i].a_new[0] = reduced_x[i]
@@ -124,7 +125,7 @@ def integrate(AtomList, dt, boxsize):
         # Apply periodic boundary condition.
         if (Atom.x[0] > boxsize[0]): Atom.x[0] -= boxsize[0]
         if (Atom.x[0] < 0         ): Atom.x[0] += boxsize[0]
-        
+
         if (Atom.x[1] > boxsize[1]): Atom.x[1] -= boxsize[1]
         if (Atom.x[1] < 0         ): Atom.x[1] += boxsize[1]
 
@@ -135,7 +136,7 @@ def integrate(AtomList, dt, boxsize):
         Atom.v[0] += 0.5 * (Atom.a[0] + Atom.a_new[0]) * dt
         Atom.v[1] += 0.5 * (Atom.a[1] + Atom.a_new[1]) * dt
         Atom.v[2] += 0.5 * (Atom.a[2] + Atom.a_new[2]) * dt
-        
+
         # Update accelerations.
         Atom.a[0] = Atom.a_new[0]
         Atom.a[1] = Atom.a_new[1]
@@ -144,14 +145,29 @@ def integrate(AtomList, dt, boxsize):
 # Write coordinates to a .pdb trajectory file
 def writeFrame(step, AtomList, boxsize):
     with open("traj.pdb", "a+") as file:
-        
+
         file.write("MODEL        {}\n".format(step))
         file.write("CRYST1  {:7.3f}  {:7.3f}  {:7.3f}  90.00  90.00  90.00 P 1           1\n".format(boxsize[0], boxsize[1], boxsize[2]))
-        
+
         for Atom in AtomList:
             file.write("{:6s}{:5d} {:^4s}{:1s}{:4s}{:1s}{:4d}{:1s}   {:8.3f}{:8.3f}{:8.3f}\n".format('ATOM', Atom.idx, Atom.name, '', Atom.name, '', Atom.idx, '', Atom.x[0], Atom.x[1], Atom.x[2]))
-        
+
         file.write('TER\nENDMDL\n')
+
+# Function for logging various (ensemble) parameters in the system/
+def writeEnergy(step, AtomList):
+    T = 0
+    for Atom in AtomList:
+        # Temperature
+        vmag = (Atom.v[0]**2 + Atom.v[1]**2 + Atom.v[2]**2)**0.5
+        m    = Atom.mass * constants.amu # kg
+        v    = ((10**10 * constants.amu) / constants.e) * vmag # m/s
+        T += m * v**2
+
+    T /= constants.kB * 2 * len(AtomList) # 2Nk_b
+
+    with open("energy.log", "a+") as file:
+        file.write("{} {}\n".format(step, T))
 
 # Run MD simulation.
 def run_md(AtomList, dt, nsteps, T, boxsize):
@@ -159,7 +175,7 @@ def run_md(AtomList, dt, nsteps, T, boxsize):
 
         # Initialize list of positions for old output function.
     positionList = [[Atom.x[0] for Atom in AtomList]]
-    
+
         # Initial velocity from Maxwell-Boltzmann distribution.
     generate_velocities(AtomList, T)
 
@@ -177,6 +193,7 @@ def run_md(AtomList, dt, nsteps, T, boxsize):
         # 4 OUTPUT STEP
         if (step % 100 == 0):
             writeFrame(step + 1, AtomList, boxsize)
+            writeEnergy(step + 1, AtomList)
             positionList.append([Atom.x[0] for Atom in AtomList])
 
     return positionList
@@ -215,4 +232,11 @@ plt.plot(atom3, '.', label='atom 3')
 plt.xlabel(r'Step')
 plt.ylabel(r'$x$-Position/Å')
 plt.legend(frameon=False)
+plt.show()
+
+x = load.Col('energy.log', 1)
+T = load.Col('energy.log', 2)
+
+plt.plot(x, T, label="mean = {:.4f}".format(sum(T)/len(T)))
+plt.legend()
 plt.show()
