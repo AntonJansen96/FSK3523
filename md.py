@@ -19,9 +19,9 @@ class Atom:
         self.lj_epsilon = lj_epsilon
         self.lj_sigma   = lj_sigma
         self.x          = x
-        self.v          = 0
-        self.a          = 0
-        self.a_new      = 0
+        self.v          = [0, 0, 0]
+        self.a          = [0, 0, 0]
+        self.a_new      = [0, 0, 0]
 
 def LJ_force(r, epsilon, sigma):
     repulsive  = 48 * epsilon * sigma**12 / r**13
@@ -30,11 +30,17 @@ def LJ_force(r, epsilon, sigma):
     return repulsive - attractive
 
 def generate_velocities(AtomList, T):
+    # Not sure if this is exactly correct.
+    # Maybe some sqrt(3/2) is still missing?
+    # See https://manual.gromacs.org/current/reference-manual/algorithms/molecular-dynamics.html#coordinates-and-velocities
     for Atom in AtomList:
         BoltzmannFactor = constants.k_b * T
         BoltzmannFactor = BoltzmannFactor / (Atom.mass * constants.e)
         BoltzmannFactor = BoltzmannFactor**0.5
-        Atom.v          = BoltzmannFactor * (np.random.rand() - 0.5)
+
+        Atom.v[0] = BoltzmannFactor * (np.random.rand() - 0.5)
+        Atom.v[1] = BoltzmannFactor * (np.random.rand() - 0.5)
+        Atom.v[2] = BoltzmannFactor * (np.random.rand() - 0.5)
 
 def get_accelerations(AtomList):
     def reduce(forcegrid):
@@ -52,7 +58,7 @@ def get_accelerations(AtomList):
         for j in range(i + 1, len(AtomList)):
             
             r_x = AtomList[j].x - AtomList[i].x
-            
+
             rmag = (r_x**2)**0.5
             
             force_scalar = LJ_force(rmag, AtomList[i].lj_epsilon, AtomList[i].lj_sigma)
@@ -70,9 +76,17 @@ def get_accelerations(AtomList):
 # Velocity-Verlet integrator.
 def integrate(AtomList, dt):
     for Atom in AtomList:
-        Atom.x += Atom.v * dt + 0.5 * Atom.a * dt * dt
-        Atom.v += 0.5 * (Atom.a + Atom.a_new) * dt
-        Atom.a  = Atom.a_new
+        Atom.x[0] += Atom.v[0] * dt + 0.5 * Atom.a[0] * dt * dt
+        Atom.x[1] += Atom.v[1] * dt + 0.5 * Atom.a[1] * dt * dt
+        Atom.x[2] += Atom.v[2] * dt + 0.5 * Atom.a[2] * dt * dt
+
+        Atom.v[0] += 0.5 * (Atom.a[0] + Atom.a_new[0]) * dt
+        Atom.v[1] += 0.5 * (Atom.a[1] + Atom.a_new[1]) * dt
+        Atom.v[2] += 0.5 * (Atom.a[2] + Atom.a_new[2]) * dt
+        
+        Atom.a[0] = Atom.a_new[0]
+        Atom.a[1] = Atom.a_new[1]
+        Atom.a[2] = Atom.a_new[2]
 
 # Write coordinates to a .pdb trajectory file
 def writeFrame(AtomList, step):
@@ -81,7 +95,7 @@ def writeFrame(AtomList, step):
         file.write("MODEL        {}\n".format(step))
         
         for Atom in AtomList:
-            file.write("{:6s}{:5d} {:^4s}{:1s}{:4s}{:1s}{:4d}{:1s}   {:8.3f}{:8.3f}{:8.3f}\n".format('ATOM', Atom.idx, Atom.name, '', Atom.name, '', Atom.idx, '', Atom.x, 0.0, 0.0))
+            file.write("{:6s}{:5d} {:^4s}{:1s}{:4s}{:1s}{:4d}{:1s}   {:8.3f}{:8.3f}{:8.3f}\n".format('ATOM', Atom.idx, Atom.name, '', Atom.name, '', Atom.idx, '', Atom.x[0], Atom.x[1], Atom.x[2]))
         
         file.write('TER\nENDMDL\n')
 
@@ -90,34 +104,34 @@ def run_md(AtomList, dt, nsteps, T):
     # 1 INPUT INITIAL CONDITIONS
 
         # Initialize list of positions for old output function.
-    positionList = [[Atom.x for Atom in AtomList]]
+    positionList = [[Atom.x[0] for Atom in AtomList]]
     
         # Initial velocity from Maxwell-Boltzmann distribution.
     generate_velocities(AtomList, T)
 
         # Update user.
-    print("initial positions:  {:.4f}, {:.4f}, {:.4f}".format(AtomList[0].x, AtomList[1].x, AtomList[2].x))
-    print("initial velocities: {:.4f}, {:.4f}, {:.4f}".format(AtomList[0].v, AtomList[1].v, AtomList[2].v))
+    print("initial positions:  {:.4f}, {:.4f}, {:.4f}".format(AtomList[0].x[0], AtomList[1].x[0], AtomList[2].x[0]))
+    print("initial velocities: {:.4f}, {:.4f}, {:.4f}".format(AtomList[0].v[0], AtomList[1].v[0], AtomList[2].v[0]))
 
     for step in range(nsteps):
         # 2 COMPUTE FORCE
-        get_accelerations(AtomList)
+        # get_accelerations(AtomList)
 
         # 3 UPDATE CONFIGURATION
         integrate(AtomList, dt)
 
         # 4 OUTPUT STEP
         writeFrame(AtomList, step + 1)
-        positionList.append([Atom.x for Atom in AtomList])
+        positionList.append([Atom.x[0] for Atom in AtomList])
 
     return positionList
 
 # MAIN #########################################################################
 
 AtomList = [
-    Atom(1, 'ARG', 1.0,  39.948, 0, 0.0103, 3.4),
-    Atom(2, 'ARG', 5.0,  39.948, 0, 0.0103, 3.4),
-    Atom(3, 'ARG', 10.0, 39.948, 0, 0.0103, 3.4)
+    Atom(1, 'ARG', [1.0, 0, 0], 39.948, 0, 0.0103, 3.4),
+    Atom(2, 'ARG', [5.0, 0, 0], 39.948, 0, 0.0103, 3.4),
+    Atom(3, 'ARG', [9.0, 0, 0], 39.948, 0, 0.0103, 3.4)
     ]
 
 sim_pos = run_md(AtomList=AtomList, dt=0.1, nsteps=10000, T=300)
