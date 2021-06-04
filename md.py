@@ -202,11 +202,21 @@ def run_md(AtomList, dt, nsteps, T, boxsize):
 
 np.random.seed(1) # for testing
 
-AtomList = [
-    Atom(1, 'ARG', [1.0, 1, 0], 39.948, 0, 0.0103, 3.4),
-    Atom(2, 'ARG', [5.0, 1, 0], 39.948, 0, 0.0103, 3.4),
-    Atom(3, 'ARG', [9.0, 1, 0], 39.948, 0, 0.0103, 3.4)
-    ]
+# AtomList = [
+#     Atom(1, 'ARG', [1.0, 1, 0], 39.948, 0, 0.0103, 3.4),
+#     Atom(2, 'ARG', [5.0, 1, 0], 39.948, 0, 0.0103, 3.4),
+#     Atom(3, 'ARG', [9.0, 1, 0], 39.948, 0, 0.0103, 3.4)
+#     ]
+
+AtomList = []
+idx = 1
+for x in range(1, 30, 8):
+    for y in range(1, 30, 8):
+        for z in range(1, 30, 8):
+            AtomList.append(Atom(idx, 'ARG', [x, y, z], 39.948, 0, 0.0103, 3.4))
+            idx += 1
+
+print(len(AtomList))
 
 tic = time.perf_counter()
 
