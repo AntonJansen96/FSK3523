@@ -4,6 +4,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 import time
 import load
+import math
+
+# time_get_distance = 0
+# time_periodic = 0
+# time_reduce = 0
+# time_LJ = 0
 
 class constants:
     N   = 6.02214129e23   # mol^-1
@@ -26,17 +32,6 @@ class Atom:
         self.a          = [0, 0, 0]
         self.a_new      = [0, 0, 0]
 
-def LJ_force(r, epsilon, sigma):
-    LJ_cutoff = 12 # Angstrom = 1.2nm, hardcoded.
-    
-    if (r < LJ_cutoff):
-        repulsive  = 48 * epsilon * sigma**12 / r**13
-        attractive = 24 * epsilon * sigma**6  / r**7
-
-        return repulsive - attractive
-
-    return 0
-
 def generate_velocities(AtomList, T):
     # Not sure if this is exactly correct.
     # Maybe some sqrt(3/2) is still missing?
@@ -51,6 +46,11 @@ def generate_velocities(AtomList, T):
         Atom.v[2] = BoltzmannFactor * (np.random.rand() - 0.5)
 
 def get_accelerations(AtomList, boxsize):
+    # global time_get_distance
+    # global time_periodic
+    # global time_reduce
+    # global time_LJ
+
     def reduce(forcegrid):
         reduced = len(forcegrid) * [0]
 
@@ -64,73 +64,97 @@ def get_accelerations(AtomList, boxsize):
     accel_y = [[0] * len(AtomList) for i in range(len(AtomList))]
     accel_z = [[0] * len(AtomList) for i in range(len(AtomList))]
 
+    # Loop over all combinations.
     for i in range(0, len(AtomList) - 1):
         for j in range(i + 1, len(AtomList)):
 
             # Get the distance in each dimension.
+            # tic = time.perf_counter()
             r_x = AtomList[j].x[0] - AtomList[i].x[0]
             r_y = AtomList[j].x[1] - AtomList[i].x[1]
             r_z = AtomList[j].x[2] - AtomList[i].x[2]
+            # time_get_distance += time.perf_counter() - tic
 
             # Apply periodic boundary condition.
-            if (r_x  >  0.5 * boxsize[0]): r_x -= boxsize[0]
-            if (r_x <= -0.5 * boxsize[0]): r_x += boxsize[0]
+            # tic = time.perf_counter()
+            if (r_x >     0.5 * boxsize[0]): r_x -= boxsize[0]
+            elif (r_x <= -0.5 * boxsize[0]): r_x += boxsize[0]
 
-            if (r_y  >  0.5 * boxsize[1]): r_y -= boxsize[1]
-            if (r_y <= -0.5 * boxsize[1]): r_y += boxsize[1]
+            if (r_y >     0.5 * boxsize[1]): r_y -= boxsize[1]
+            elif (r_y <= -0.5 * boxsize[1]): r_y += boxsize[1]
 
-            if (r_z  >  0.5 * boxsize[2]): r_z -= boxsize[2]
-            if (r_z <= -0.5 * boxsize[2]): r_z += boxsize[2]
+            if (r_z >     0.5 * boxsize[2]): r_z -= boxsize[2]
+            elif (r_z <= -0.5 * boxsize[2]): r_z += boxsize[2]
+            # time_periodic += time.perf_counter() - tic
 
             # Compute distance.
-            rmag = (r_x**2 + r_y**2 + r_z**2)**0.5
+            rmag_sq = r_x * r_x + r_y * r_y + r_z * r_z
 
-            # Compute force.
-            force_scalar = LJ_force(rmag, AtomList[i].lj_epsilon, AtomList[i].lj_sigma)
+            # Compute Lennard-Jones force.
+            if (rmag_sq < 144): # Cut-off in Angstrom = 1.2nm, hardcoded.
+                # tic = time.perf_counter()
+                rmag = math.sqrt(rmag_sq)
+                
+                # Combination rule (arithmetic mean).
+                epsilon = 0.5 * (AtomList[i].lj_epsilon + AtomList[j].lj_epsilon)
+                sigma   = 0.5 * (AtomList[i].lj_sigma   + AtomList[j].lj_sigma)
 
-            # Decompose force.
-            force_x = force_scalar * r_x / rmag
-            force_y = force_scalar * r_y / rmag
-            force_z = force_scalar * r_z / rmag
+                # Compute LJ terms.
+                factor       = (sigma * sigma * sigma * sigma * sigma * sigma) / (rmag_sq * rmag_sq * rmag_sq)
+                attractive   = factor / rmag
+                repulsive    = attractive * factor
+                force_scalar = 24 * epsilon * (2 * repulsive - attractive)
 
-            # Fill the force grid.
-            accel_x[i][j] =   force_x / AtomList[i].mass
-            accel_x[j][i] = - force_x / AtomList[j].mass
+                # Decompose force.
+                force_x = force_scalar * r_x / rmag
+                force_y = force_scalar * r_y / rmag
+                force_z = force_scalar * r_z / rmag
 
-            accel_y[i][j] =   force_y / AtomList[i].mass
-            accel_y[j][i] = - force_y / AtomList[j].mass
+                # Fill the force grid (are the indices of the masses correct?).
+                accel_x[i][j] =   force_x / AtomList[i].mass
+                accel_x[j][i] = - force_x / AtomList[j].mass
 
-            accel_z[i][j] =   force_z / AtomList[i].mass
-            accel_z[j][i] = - force_z / AtomList[j].mass
+                accel_y[i][j] =   force_y / AtomList[i].mass
+                accel_y[j][i] = - force_y / AtomList[j].mass
+
+                accel_z[i][j] =   force_z / AtomList[i].mass
+                accel_z[j][i] = - force_z / AtomList[j].mass                
+                # time_LJ += time.perf_counter() - tic
+            
+            else:
+                # Fill the force grid.
+                accel_x[i][j] = 0; accel_x[j][i] = 0
+                accel_y[i][j] = 0; accel_y[j][i] = 0
+                accel_z[i][j] = 0; accel_z[j][i] = 0
 
     # Reduce forces.
+    # tic = time.perf_counter()
     reduced_x = reduce(accel_x)
     reduced_y = reduce(accel_y)
     reduced_z = reduce(accel_z)
+    # time_reduce += time.perf_counter() - tic
 
     # Update.
     for i in range(0, len(AtomList)):
-        AtomList[i].a_new[0] = reduced_x[i]
-        AtomList[i].a_new[1] = reduced_y[i]
-        AtomList[i].a_new[2] = reduced_z[i]
+        AtomList[i].a_new = [reduced_x[i], reduced_y[i], reduced_z[i]]
 
 # Velocity-Verlet integrator.
 def integrate(AtomList, dt, boxsize):
     for Atom in AtomList:
         # Update positions.
-        Atom.x[0] += Atom.v[0] * dt + 0.5 * Atom.a[0] * dt * dt
-        Atom.x[1] += Atom.v[1] * dt + 0.5 * Atom.a[1] * dt * dt
-        Atom.x[2] += Atom.v[2] * dt + 0.5 * Atom.a[2] * dt * dt
+        Atom.x[0] += (Atom.v[0] + 0.5 * Atom.a[0] * dt) * dt
+        Atom.x[1] += (Atom.v[1] + 0.5 * Atom.a[1] * dt) * dt
+        Atom.x[2] += (Atom.v[2] + 0.5 * Atom.a[2] * dt) * dt
 
         # Apply periodic boundary condition.
         if (Atom.x[0] > boxsize[0]): Atom.x[0] -= boxsize[0]
-        if (Atom.x[0] < 0         ): Atom.x[0] += boxsize[0]
+        elif (Atom.x[0] < 0       ): Atom.x[0] += boxsize[0]
 
         if (Atom.x[1] > boxsize[1]): Atom.x[1] -= boxsize[1]
-        if (Atom.x[1] < 0         ): Atom.x[1] += boxsize[1]
+        elif (Atom.x[1] < 0       ): Atom.x[1] += boxsize[1]
 
         if (Atom.x[2] > boxsize[2]): Atom.x[2] -= boxsize[2]
-        if (Atom.x[2] < 0         ): Atom.x[2] += boxsize[2]
+        elif (Atom.x[2] < 0       ): Atom.x[2] += boxsize[2]
 
         # Update velocities.
         Atom.v[0] += 0.5 * (Atom.a[0] + Atom.a_new[0]) * dt
@@ -183,18 +207,32 @@ def run_md(AtomList, dt, nsteps, T, boxsize):
     print("initial positions:  {:.4f}, {:.4f}, {:.4f}".format(AtomList[0].x[0], AtomList[1].x[0], AtomList[2].x[0]))
     print("initial velocities: {:.4f}, {:.4f}, {:.4f}".format(AtomList[0].v[0], AtomList[1].v[0], AtomList[2].v[0]))
 
+    time_forces    = 0
+    time_integrate = 0
+    time_output    = 0
+
     for step in range(nsteps):
         # 2 COMPUTE FORCE
+        tic = time.perf_counter()
         get_accelerations(AtomList, boxsize)
+        time_forces += time.perf_counter() - tic
 
         # 3 UPDATE CONFIGURATION
+        tic = time.perf_counter()
         integrate(AtomList, dt, boxsize)
+        time_integrate += time.perf_counter() - tic
 
         # 4 OUTPUT STEP
+        tic = time.perf_counter()
         if (step % 100 == 0):
             writeFrame(step + 1, AtomList, boxsize)
             writeEnergy(step + 1, AtomList)
             positionList.append([Atom.x[0] for Atom in AtomList])
+        time_output += time.perf_counter() - tic
+
+    print("time_forces = {:.4f}".format(time_forces))
+    print("time_integrate = {:.4f}".format(time_integrate))
+    print("time_output = {:.4f}".format(time_output))
 
     return positionList
 
@@ -216,15 +254,17 @@ for x in range(1, 30, 8):
             AtomList.append(Atom(idx, 'ARG', [x, y, z], 39.948, 0, 0.0103, 3.4))
             idx += 1
 
-print(len(AtomList))
+print("we have {} atoms".format(len(AtomList)))
 
 tic = time.perf_counter()
-
-sim_pos = run_md(AtomList=AtomList, dt=0.1, nsteps=200000, T=300, boxsize=[30.0, 30.0, 30.0])
-
+sim_pos = run_md(AtomList=AtomList, dt=0.1, nsteps=10000, T=300, boxsize=[30.0, 30.0, 30.0])
 toc = time.perf_counter()
+print("time_total = {:.4f}".format(toc - tic))
 
-print("time = {:.4f}".format(toc - tic))
+# print("time_get_distance = {:.4f}".format(time_get_distance))
+# print("time_periodic = {:.4f}".format(time_periodic))
+# print("time_LJ = {:.4f}".format(time_LJ))
+# print("time_reduce = {:.4f}".format(time_reduce))
 
 atom1 = len(sim_pos) * [0]
 atom2 = len(sim_pos) * [0]
