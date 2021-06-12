@@ -143,6 +143,16 @@ def instaTemp(AtomList):
 
     return 60.13618 * temp / len(AtomList)
 
+def kinetic_energy(AtomList):
+    Ekin = 0
+    for Atom in AtomList:
+        vmag_sq = Atom.v[0] * Atom.v[0] + Atom.v[1] * Atom.v[1] + Atom.v[2] * Atom.v[2]
+        # Use E = 1/2mv^2 and convert to J.
+        Ekin += 0.5 * (constants.amu * Atom.mass) * (10**6 * vmag_sq)
+    
+    # convert J to kJ/mol.
+    return 0.001 * Ekin * constants.N
+
 def integrate(AtomList, dt, boxsize, T, tau_t):
     for Atom in AtomList:
         # Update positions.
@@ -170,7 +180,7 @@ def integrate(AtomList, dt, boxsize, T, tau_t):
             Atom.v[0] = factor * np.random.normal(scale=sigma)
             Atom.v[1] = factor * np.random.normal(scale=sigma)
             Atom.v[2] = factor * np.random.normal(scale=sigma)
-        else: 
+        else:
             # By updating the velocities like usual:
             Atom.v[0] += 0.5 * (Atom.a[0] + Atom.a_new[0]) * dt
             Atom.v[1] += 0.5 * (Atom.a[1] + Atom.a_new[1]) * dt
@@ -194,9 +204,9 @@ def writeFrame(step, AtomList, boxsize):
         file.write('TER\nENDMDL\n')
 
 # Function for logging various (ensemble) parameters in the system/
-def writeEnergy(step, AtomList):
+def writeEnergies(step, AtomList):
     with open("energy.log", "a+") as file:
-        file.write("{} {}\n".format(step, instaTemp(AtomList)))
+        file.write("{} {} {}\n".format(step, instaTemp(AtomList), kinetic_energy(AtomList)))
 
 # Run MD simulation.
 def run_md(AtomList, dt, nsteps, T, boxsize):
@@ -211,7 +221,7 @@ def run_md(AtomList, dt, nsteps, T, boxsize):
         # Update user.
     print("initial positions:  {:.4f}, {:.4f}, {:.4f}".format(AtomList[0].x[0], AtomList[1].x[0], AtomList[2].x[0]))
     print("initial velocities: {:.4f}, {:.4f}, {:.4f}".format(AtomList[0].v[0], AtomList[1].v[0], AtomList[2].v[0]))
-    writeEnergy(0, AtomList) # Write the temperature at t = 0.
+    writeEnergies(0, AtomList) # Write the temperature at t = 0.
 
     time_forces    = 0
     time_integrate = 0
@@ -232,7 +242,7 @@ def run_md(AtomList, dt, nsteps, T, boxsize):
         tic = time.perf_counter()
         if (step % 100 == 0):
             writeFrame(step + 1, AtomList, boxsize)
-            writeEnergy(step + 1, AtomList)
+            writeEnergies(step + 1, AtomList)
             positionList.append([Atom.x[0] for Atom in AtomList])
         time_output += time.perf_counter() - tic
 
