@@ -143,7 +143,7 @@ def instaTemp(AtomList):
 
     return 60.13618 * temp / len(AtomList)
 
-def integrate(AtomList, dt, boxsize):
+def integrate(AtomList, dt, boxsize, T, tau_t):
     for Atom in AtomList:
         # Update positions.
         Atom.x[0] += (Atom.v[0] + 0.5 * Atom.a[0] * dt) * dt
@@ -161,9 +161,20 @@ def integrate(AtomList, dt, boxsize):
         elif (Atom.x[2] < 0       ): Atom.x[2] += boxsize[2]
 
         # Update velocities.
-        Atom.v[0] += 0.5 * (Atom.a[0] + Atom.a_new[0]) * dt
-        Atom.v[1] += 0.5 * (Atom.a[1] + Atom.a_new[1]) * dt
-        Atom.v[2] += 0.5 * (Atom.a[2] + Atom.a_new[2]) * dt
+        if (np.random.rand() < tau_t * dt):
+            # By applying Andersen thermostat:
+            factor = 0.001 * math.sqrt(2.0 / 3.0)
+            
+            sigma = math.sqrt((constants.kB * T) / (Atom.mass * constants.amu))
+
+            Atom.v[0] = factor * np.random.normal(scale=sigma)
+            Atom.v[1] = factor * np.random.normal(scale=sigma)
+            Atom.v[2] = factor * np.random.normal(scale=sigma)
+        else: 
+            # By updating the velocities like usual:
+            Atom.v[0] += 0.5 * (Atom.a[0] + Atom.a_new[0]) * dt
+            Atom.v[1] += 0.5 * (Atom.a[1] + Atom.a_new[1]) * dt
+            Atom.v[2] += 0.5 * (Atom.a[2] + Atom.a_new[2]) * dt
 
         # Update accelerations.
         Atom.a[0] = Atom.a_new[0]
@@ -214,7 +225,7 @@ def run_md(AtomList, dt, nsteps, T, boxsize):
 
         # 3 UPDATE CONFIGURATION
         tic = time.perf_counter()
-        integrate(AtomList, dt, boxsize)
+        integrate(AtomList, dt, boxsize, T, tau_t=2)
         time_integrate += time.perf_counter() - tic
 
         # 4 OUTPUT STEP
