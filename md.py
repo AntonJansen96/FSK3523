@@ -17,6 +17,12 @@ import math
 # velocity  length/time     nm/ps       1e3 m/s
 # energy                    amu nm^2 / ps^2 = kJ/mol
 
+class Energy:
+    def __init__(self):
+        self.potential = 0
+
+Logger = Energy()
+
 class constants:
     N   = 6.02214129e23   # mol^-1
     kB  = 1.380649e-23    # J/K
@@ -24,6 +30,7 @@ class constants:
     e0  = 8.854187813e-12 # Farad/m
     e   = 1.602176634e-19 # C
     amu = 1.660539066e-27 # kg
+    pi  = 3.141592654
 
 class Atom:
     def __init__(self, idx, name, x, mass, charge, lj_epsilon, lj_sigma):
@@ -50,7 +57,9 @@ def generate_velocities(AtomList, T):
         Atom.v[1] = factor * np.random.normal(scale=sigma)
         Atom.v[2] = factor * np.random.normal(scale=sigma)
 
-def get_accelerations(AtomList, boxsize):
+def get_accelerations(AtomList, boxsize, step):
+    global Logger
+
     def reduce(forcegrid):
         reduced = len(forcegrid) * [0]
 
@@ -59,6 +68,8 @@ def get_accelerations(AtomList, boxsize):
                 reduced[i] += forcegrid[j][i]
 
         return reduced
+
+    vdw_cutoff = 1.2 # nm
 
     accel_x = [[0] * len(AtomList) for i in range(len(AtomList))]
     accel_y = [[0] * len(AtomList) for i in range(len(AtomList))]
@@ -87,7 +98,7 @@ def get_accelerations(AtomList, boxsize):
             rmag_sq = r_x * r_x + r_y * r_y + r_z * r_z
 
             # Compute Lennard-Jones force.
-            if (rmag_sq < 1.44): # Cut-off = 1.2nm, hardcoded.
+            if (rmag_sq <= vdw_cutoff * vdw_cutoff):
                 rmag = math.sqrt(rmag_sq)
                 
                 # Combination rule (arithmetic mean).
@@ -115,11 +126,47 @@ def get_accelerations(AtomList, boxsize):
                 accel_z[i][j] =   force_z / AtomList[i].mass
                 accel_z[j][i] = - force_z / AtomList[j].mass
             
+                # If we log the energies in this step, compute Lennard-Jones
+                # potential energy.
+                if (step % 100 == 0):
+                    repuls = (sigma / rmag)**12
+                    attrac = (sigma / rmag)**6
+                    Logger.potential += 4 * epsilon * (repuls - attrac)
+
             else:
                 # Fill the force grid.
                 accel_x[i][j] = 0; accel_x[j][i] = 0
                 accel_y[i][j] = 0; accel_y[j][i] = 0
                 accel_z[i][j] = 0; accel_z[j][i] = 0
+
+                # If we log the energies in this step, compute Lennard-Jones
+                # tail correction to energy.
+                if (step % 100 == 0):
+                    # Compute epsilon and sigma using arithmetic mean.
+                    epsilon = 0.5 * (AtomList[i].lj_epsilon + AtomList[j].lj_epsilon)
+                    sigma   = 0.5 * (AtomList[i].lj_sigma + AtomList[j].lj_sigma)
+
+                    # Compute the number density rho.
+                    volume  = boxsize[0] * boxsize[1] * boxsize[2]
+                    rho     = len(AtomList) / float(volume)
+                    
+                    # Compute sigma^3 and sigma^9
+                    sigma_3 = sigma   * sigma   * sigma
+                    sigma_9 = sigma_3 * sigma_3 * sigma_3
+
+                    # Compute r_c^3 and r_c^9
+                    rc_3    = vdw_cutoff * vdw_cutoff * vdw_cutoff
+                    rc_9    = rc_3       * rc_3       * rc_3
+
+                    # Compute pre-factor
+                    factor  = (8.0 / 3.0) * constants.pi * rho * epsilon * sigma_3
+                    
+                    # Compute repulsive and attractive terms.
+                    repuls  = (1.0 / 3.0) * (sigma_9 / rc_9)
+                    attrac  = sigma_3 / rc_3
+                    
+                    # Compute and add tail energy term.
+                    Logger.potential += factor * (repuls - attrac)
 
     # Reduce forces.
     reduced_x = reduce(accel_x)
@@ -129,29 +176,6 @@ def get_accelerations(AtomList, boxsize):
     # Update.
     for i in range(0, len(AtomList)):
         AtomList[i].a_new = [reduced_x[i], reduced_y[i], reduced_z[i]]
-
-def instaTemp(AtomList):
-    # instantaneous temperature = sum(mv^2) / 2Nk_B
-    # v is in nm/ps = 1e3 m/s --> v^2 = (nm/ps)^2 = 1e6 (m/s)^2
-    # m is in amu = 1.66e-27 kg
-    # factor = (10**6 * constants.amu) / (2 * constants.kB)
-    # factor = 60.13618
-    temp = 0
-    for Atom in AtomList:
-        vmag_sq = Atom.v[0] * Atom.v[0] + Atom.v[1] * Atom.v[1] + Atom.v[2] * Atom.v[2]
-        temp += Atom.mass * vmag_sq
-
-    return 60.13618 * temp / len(AtomList)
-
-def kinetic_energy(AtomList):
-    Ekin = 0
-    for Atom in AtomList:
-        vmag_sq = Atom.v[0] * Atom.v[0] + Atom.v[1] * Atom.v[1] + Atom.v[2] * Atom.v[2]
-        # Use E = 1/2mv^2 and convert to J.
-        Ekin += 0.5 * (constants.amu * Atom.mass) * (10**6 * vmag_sq)
-    
-    # convert J to kJ/mol.
-    return 0.001 * Ekin * constants.N
 
 def integrate(AtomList, dt, boxsize, T, tau_t):
     for Atom in AtomList:
@@ -203,13 +227,35 @@ def writeFrame(step, AtomList, boxsize):
 
         file.write('TER\nENDMDL\n')
 
-# Function for logging various (ensemble) parameters in the system/
+# Function for logging various (ensemble) parameters in the system.
 def writeEnergies(step, AtomList):
-    with open("energy.log", "a+") as file:
-        file.write("{} {} {}\n".format(step, instaTemp(AtomList), kinetic_energy(AtomList)))
+    global Logger
 
+    mass_vmag_sq = 0
+
+    for Atom in AtomList:
+        vmag_sq = Atom.v[0] * Atom.v[0] + Atom.v[1] * Atom.v[1] + Atom.v[2] * Atom.v[2]
+        
+        mass_vmag_sq += Atom.mass * vmag_sq
+    # Instantaneous temperature = sum(mv^2) / 2Nk_B
+    # v is in nm/ps = 1e3 m/s --> v^2 = (nm/ps)^2 = 1e6 (m/s)^2
+    # m is in amu = 1.66e-27 kg
+    factor = (10**6 * constants.amu) / (2 * constants.kB) # = 60.13618
+    temp   = factor * mass_vmag_sq / len(AtomList)
+    
+    # Use E = 1/2mv^2 and convert to J, then convert to kJ/mol.
+    # factor = 0.5 * constants.amu * 10**6 * 0.001 * constants.N
+    # factor = 0.5
+    Ekin   = 0.5 * mass_vmag_sq
+
+    with open("energy.log", "a+") as file:
+        file.write("{} {} {} {}\n".format(step, temp, Ekin, Logger.potential))
+
+    Logger.potential = 0 # reset potential energy.
 # Run MD simulation.
 def run_md(AtomList, dt, nsteps, T, boxsize):
+    global Logger
+    
     # 1 INPUT INITIAL CONDITIONS
 
         # Initialize list of positions for old output function.
@@ -230,7 +276,7 @@ def run_md(AtomList, dt, nsteps, T, boxsize):
     for step in range(nsteps):
         # 2 COMPUTE FORCE
         tic = time.perf_counter()
-        get_accelerations(AtomList, boxsize)
+        get_accelerations(AtomList, boxsize, step)
         time_forces += time.perf_counter() - tic
 
         # 3 UPDATE CONFIGURATION
