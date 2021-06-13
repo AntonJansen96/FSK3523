@@ -47,7 +47,7 @@ class MD
         void writeFrame(size_t step);
         
         // Write the energies to energy.log.
-        void writeEnergies();    
+        void writeEnergies(size_t step);
         
         // Reduce the forces in the forcegrid.
         std::vector<double> reduce(std::vector<std::vector<double>> const &forcegrid);

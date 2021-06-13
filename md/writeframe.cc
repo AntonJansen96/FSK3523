@@ -2,7 +2,7 @@
 
 void MD::writeFrame(size_t step)
 {
-    auto file = fopen("trajnew.pdb", "a");
+    auto file = fopen("traj.pdb", "a");
 
     // Print the header.
     fprintf(file, "MODEL        %d\n", step);

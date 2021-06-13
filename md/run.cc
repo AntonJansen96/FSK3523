@@ -7,7 +7,7 @@ void MD::run()
 
     // Output at step 0.
     this->writeFrame(0);
-    this->writeEnergies();
+    this->writeEnergies(0);
 
     // Do MD loop.
     for (size_t step = 1; step != d_nsteps + 1; ++step)
@@ -22,7 +22,7 @@ void MD::run()
         if (step % d_nstout == 0)
         {
             this->writeFrame(step);
-            this->writeEnergies();
+            this->writeEnergies(step);
         }
     }
 }

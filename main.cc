@@ -1,4 +1,5 @@
-#include "main.h"
+#include "atom/atom.h"
+#include "md/md.h"
 
 int main()
 {
@@ -23,8 +24,4 @@ int main()
     );
     
     simulator.run();
-
-    std::cout << simulator.d_AtomList[0].v[0] << ' '
-              << simulator.d_AtomList[0].v[1] << ' '
-              << simulator.d_AtomList[0].v[2] << '\n';
 }
