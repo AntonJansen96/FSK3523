@@ -30,5 +30,5 @@ MD::MD
     printf("LJcutoff      = %.2f nm\n", d_LJcutoff);
     printf("useThermostat = %d\n"   , d_useThermostat);
     printf("usePBC        = %d\n"   , d_usePBC);
-    printf("box           = [%.2f, %.2f, %.2f]\n", d_boxsize[0], d_boxsize[1], d_boxsize[2]);
+    printf("box           = [%.2f, %.2f, %.2f]\n\n", d_boxsize[0], d_boxsize[1], d_boxsize[2]);
 }

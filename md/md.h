@@ -8,19 +8,21 @@
 
 class MD
 {
-    public:
-        size_t d_nsteps;
-        size_t d_nstout;
-        double d_dt;
-        double d_T;
-        double d_tauT;
-        double d_LJcutoff;
-        bool d_useThermostat;
-        bool d_usePBC;
-        std::vector<Atom> d_AtomList;
-        std::vector<double> d_boxsize;
-        std::default_random_engine d_engine{1};
+    size_t d_nsteps;
+    size_t d_nstout;
+    double d_dt;
+    double d_T;
+    double d_tauT;
+    double d_LJcutoff;
+    bool d_useThermostat;
+    bool d_usePBC;
+    std::vector<Atom> d_AtomList;
+    std::vector<double> d_boxsize;
+    std::default_random_engine d_engine{1};
+    double d_log_LJ_trun_energy = 0;
+    double d_log_LJ_tail_energy = 0;
 
+    public:
         // Constructor.
         MD
         (
@@ -38,19 +40,16 @@ class MD
         void generate_velocities();
         
         // Compute the forces/accelerations acting on the particles.
-        void get_accelerations();
+        void get_accelerations(size_t step);
         
         // Update positions, velocities, and accelerations.
         void integrate();
         
         // Write trajectory frame to traj.pdb.
-        void writeFrame(size_t step);
+        void writeFrame(size_t step) const;
         
         // Write the energies to energy.log.
-        void writeEnergies(size_t step);
-        
-        // Reduce the forces in the forcegrid.
-        std::vector<double> reduce(std::vector<std::vector<double>> const &forcegrid);
+        void writeEnergies(size_t step) const;
 };
 
 #endif

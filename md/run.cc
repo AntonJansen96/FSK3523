@@ -13,7 +13,7 @@ void MD::run()
     for (size_t step = 1; step != d_nsteps + 1; ++step)
     {
         // Compute force.
-        this->get_accelerations();
+        this->get_accelerations(step);
 
         // Update configuration.
         this->integrate();
