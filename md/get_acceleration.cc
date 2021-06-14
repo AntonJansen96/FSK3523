@@ -1,4 +1,5 @@
 #include "md.h"
+#include "constants.h"
 #include <math.h>
 
 typedef std::vector<std::vector<double>> forcegrid;

@@ -1,4 +1,5 @@
 #include "md.h"
+#include "constants.h"
 
 namespace {
 // Instantaneous temperature = sum(mv^2) / 2Nk_B

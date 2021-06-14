@@ -1,6 +1,6 @@
 #include "md.h"
+#include "constants.h"
 #include <math.h>
-#include <random>
 
 namespace {
 // We go from m/s to nm/ps so we have a factor 0.001. Furthermore, we have 
@@ -24,6 +24,4 @@ void MD::generate_velocities()
         atom.v[1] = factor * distN(d_engine);
         atom.v[2] = factor * distN(d_engine);
     }
-
-    printf("Succesfully generated velocities.\n");
 }

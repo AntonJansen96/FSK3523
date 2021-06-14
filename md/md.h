@@ -1,24 +1,26 @@
 #ifndef MD_H
 #define MD_H
 
-#include "../atom/atom.h"
-#include "constants.cc"
+#include "atom/atom.h"
 #include <vector>
 #include <random>
 
 class MD
 {
-    size_t d_nsteps;
-    size_t d_nstout;
-    double d_dt;
-    double d_T;
-    double d_tauT;
-    double d_LJcutoff;
-    bool d_useThermostat;
-    bool d_usePBC;
+    size_t const d_nsteps;
+    size_t const d_nstout;
+    double const d_dt;
+    double const d_T;
+    double const d_tauT;
+    double const d_LJcutoff;
+    bool   const d_useThermostat;
+    bool   const d_usePBC;
+    
     std::vector<Atom> d_AtomList;
-    std::vector<double> d_boxsize;
+    std::vector<double> const d_boxsize;
     std::default_random_engine d_engine{1};
+    
+    // For energy logging.
     double d_log_LJ_trun_energy = 0;
     double d_log_LJ_tail_energy = 0;
 
@@ -31,6 +33,10 @@ class MD
             std::vector<Atom> const &AtomList, 
             std::vector<double> const &boxsize
         );
+
+        // This object is not meant to be copied or moved.
+        MD(MD const &other) = delete;
+        MD(MD &&temp) = delete;
 
         // Run the molecular dynamics simulation.
         void run();

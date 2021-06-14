@@ -1,5 +1,5 @@
 #include "md.h"
-#include <random>
+#include "constants.h"
 #include <math.h>
 
 namespace {
@@ -12,6 +12,8 @@ static double const randMax = static_cast<double>(RAND_MAX);
 
 void MD::integrate()
 {
+    double sigma;
+    
     for (Atom &atom : d_AtomList)
     {
         // Update positions.
@@ -42,7 +44,7 @@ void MD::integrate()
         if (d_useThermostat and ((rand() / randMax) < d_tauT * d_dt))
         {   // If we use the Andersen thermostat...
             // Standard deviation of Maxwell-Boltzmann distribution.
-            double sigma = sqrt((constants::kB * d_T) / (atom.mass * constants::amu));
+            sigma = sqrt((constants::kB * d_T) / (atom.mass * constants::amu));
             
             // Generate normal distribution with mean = 0 and sdev = sigma.
             std::normal_distribution<double> distN(0, sigma);

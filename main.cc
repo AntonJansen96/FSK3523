@@ -1,4 +1,3 @@
-#include "atom/atom.h"
 #include "md/md.h"
 
 int main()
