@@ -16,7 +16,7 @@ void MD::writeEnergies(size_t step) const
     if (not hasLJtailcorr)
     {
         energy_LJ_tail = this->tailcorrection();
-        hasLJtailcorr = true;
+        hasLJtailcorr  = true;
     }
 
     // Do loop for temperature and kinetic_energy.
