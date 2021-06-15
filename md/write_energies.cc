@@ -10,35 +10,37 @@ static bool wroteHeader = false;
 }
 
 void MD::writeEnergies(size_t step) const
-{
-    double vmag_sq, mass_vmag_sq = 0;
-
+{   // Do loop for temperature and kinetic_energy.
+    double mass_vmag_sq = 0;
     for (Atom const &atom : d_AtomList)
     {
-        vmag_sq = atom.v[0] * atom.v[0] + atom.v[1] * atom.v[1] + atom.v[2] * atom.v[2];
-        
+        double vmag_sq = atom.v[0] * atom.v[0] + atom.v[1] * atom.v[1] + atom.v[2] * atom.v[2];
         mass_vmag_sq += atom.mass * vmag_sq;
     }
     
-    double temp = factor * mass_vmag_sq / d_AtomList.size();
-    double Ekin = 0.5 * mass_vmag_sq;
-    
+    // Compute relevant energies.
+    double temperature      = factor * mass_vmag_sq / d_AtomList.size();
+    double energy_kinetic   = 0.5 * mass_vmag_sq;
+    double work_thermostat  = d_log_thermo_energy;
+    double energy_conserved = energy_kinetic - work_thermostat;
+
     auto file = fopen("energy.log", "a");
 
     if (not wroteHeader)
     {
-        fprintf(file, "step    T      Ekin       LJ-trunc    LJ-tail     LJ-total\n");
+        fprintf(file, "step    T      Ekin       Ethermo    Econs\n");
         wroteHeader = true;
     }
 
     fprintf
     (
         file,
-        "%-6zu  %.1f  %.3E  %.3E  %.3E  %.3E\n", 
-        step, temp, Ekin, 
-        d_log_LJ_trun_energy, 
-        d_log_LJ_tail_energy, 
-        d_log_LJ_trun_energy + d_log_LJ_tail_energy
+        "%-6zu  %.1f  %.3E  %.3E  %.3E\n", 
+        step, 
+        temperature,
+        energy_kinetic,
+        work_thermostat,
+        energy_conserved
     );
 
     fclose(file);

@@ -12,8 +12,8 @@ static double const randMax = static_cast<double>(RAND_MAX);
 
 void MD::integrate()
 {
-    double sigma;
-    
+    double sigma, vmag_sq0, vmag_sq1;
+
     for (Atom &atom : d_AtomList)
     {
         // Update positions.
@@ -42,17 +42,24 @@ void MD::integrate()
 
         // Update velocities.
         if (d_useThermostat and ((rand() / randMax) < d_tauT * d_dt))
-        {   // If we use the Andersen thermostat...
+        {   
+            // Get the velocity of the atom before thermostat.
+            vmag_sq0 = atom.v[0] * atom.v[0] + atom.v[1] * atom.v[1] + atom.v[2] * atom.v[2];
+
             // Standard deviation of Maxwell-Boltzmann distribution.
             sigma = sqrt((constants::kB * d_T) / (atom.mass * constants::amu));
             
             // Generate normal distribution with mean = 0 and sdev = sigma.
             std::normal_distribution<double> distN(0, sigma);
 
-            // Generate velocities from Maxwell-Boltzmann distribution.
+            // Get new velocities from Maxwell-Boltzmann distribution.
             atom.v[0] = factor * distN(d_engine);
             atom.v[1] = factor * distN(d_engine);
             atom.v[2] = factor * distN(d_engine);
+            
+            // Get Ekin of the atom after thermostat and log energy difference.
+            vmag_sq1 = atom.v[0] * atom.v[0] + atom.v[1] * atom.v[1] + atom.v[2] * atom.v[2];
+            d_log_thermo_energy += 0.5 * atom.mass * (vmag_sq1 - vmag_sq0);
         }
         else
         {   // Update velocities like normal.

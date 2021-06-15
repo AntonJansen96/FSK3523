@@ -15,7 +15,7 @@ class MD
     double const d_LJcutoff;
     bool   const d_useThermostat;
     bool   const d_usePBC;
-    
+
     std::vector<Atom> d_AtomList;
     std::vector<double> const d_boxsize;
     std::default_random_engine d_engine{1};
@@ -23,6 +23,7 @@ class MD
     // For energy logging.
     double d_log_LJ_trun_energy = 0;
     double d_log_LJ_tail_energy = 0;
+    double d_log_thermo_energy  = 0;
 
     public:
         // Constructor.
