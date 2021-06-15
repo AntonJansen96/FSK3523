@@ -52,6 +52,7 @@ void MD::run()
         } timer5.stop();
     } timer2.stop();
 
+    printf("\n\n");
     timer1.time();    // Print generate velocities timing.
     timer2.time();    // Print MD-loop timing.
     timer3.time();    // Print computing forces timing.

@@ -18,10 +18,10 @@ int main()
             {
                 if (idx % 2 == 0)
                 {
-                AtomList.push_back
-                (
+                    AtomList.push_back
+                    (
                     Atom(idx, "ARG", 39.948, 0.998, 0.34, {x/10, y/10, z/10})
-                );
+                    );
                 }
                 else
                 {

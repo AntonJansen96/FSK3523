@@ -2,8 +2,6 @@
 #include "constants.h"
 #include <math.h>
 
-typedef std::vector<std::vector<double>> forcegrid;
-
 void MD::get_accelerations(size_t step)
 {
     // Reset our energy-logging data members if this is an output step.
@@ -11,9 +9,9 @@ void MD::get_accelerations(size_t step)
         d_log_LJ_energy = 0;
 
     // Initialize the forcegrids to 0.
-    forcegrid accel_x(d_AtomList.size(), std::vector<double>(d_AtomList.size(), 0));
-    forcegrid accel_y(d_AtomList.size(), std::vector<double>(d_AtomList.size(), 0));
-    forcegrid accel_z(d_AtomList.size(), std::vector<double>(d_AtomList.size(), 0));
+    grid accel_x(d_AtomList.size(), std::vector<double>(d_AtomList.size(), 0));
+    grid accel_y(d_AtomList.size(), std::vector<double>(d_AtomList.size(), 0));
+    grid accel_z(d_AtomList.size(), std::vector<double>(d_AtomList.size(), 0));
 
     // Loop over all combinations.
     for (size_t i = 0; i != d_AtomList.size() - 1; ++i)
@@ -53,8 +51,8 @@ void MD::get_accelerations(size_t step)
                 double rmag = sqrt(rmag_sq);
                 
                 // Combination rule (arithmetic mean).
-                double epsilon = 0.5 * (d_AtomList[i].epsilon + d_AtomList[j].epsilon); // kJ/mol.
-                double sigma   = 0.5 * (d_AtomList[i].sigma   + d_AtomList[j].sigma);   // nm.
+                double epsilon  = d_pairs_epsilon[i][j];
+                double sigma    = d_pairs_sigma[i][j];
 
                 // Compute Lennard-Jones force.
                 double factor   = (sigma * sigma * sigma * sigma * sigma * sigma) / (rmag_sq * rmag_sq * rmag_sq);
@@ -81,12 +79,6 @@ void MD::get_accelerations(size_t step)
                 accel_z[i][j] =   force_z / d_AtomList[i].mass;
                 accel_z[j][i] = - force_z / d_AtomList[j].mass;
             }
-            else
-            {   // Fill the force grid.
-                accel_x[i][j] = 0; accel_x[j][i] = 0;
-                accel_y[i][j] = 0; accel_y[j][i] = 0;
-                accel_z[i][j] = 0; accel_z[j][i] = 0;
-            }
         }
     }
 
@@ -94,7 +86,7 @@ void MD::get_accelerations(size_t step)
     std::vector<double> reduced_x(d_AtomList.size(), 0);
     std::vector<double> reduced_y(d_AtomList.size(), 0);
     std::vector<double> reduced_z(d_AtomList.size(), 0);
-    
+
     // Parallellizing the reduction of accelerations is thread-safe, 
     // but slower for small systems.
     // #pragma omp parallel for

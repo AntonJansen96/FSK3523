@@ -5,6 +5,8 @@
 #include <vector>
 #include <random>
 
+typedef std::vector<std::vector<double>> grid;
+
 class MD
 {
     size_t const d_nsteps;
@@ -20,7 +22,11 @@ class MD
     std::vector<Atom> d_AtomList;
     std::vector<double> const d_boxsize;
     std::default_random_engine d_engine{1};
-    
+
+    // Stores pre-computed combinations of epsilon and sigma for speedup.
+    grid d_pairs_epsilon;
+    grid d_pairs_sigma;
+
     // For energy logging.
     double d_log_LJ_energy     = 0;
     double d_log_thermo_energy = 0;
@@ -41,7 +47,7 @@ class MD
 
         // Run the molecular dynamics simulation.
         void run();
-    
+
     private:
         // Generate initial velocities from Maxwell-Boltzmann distribution.
         void generate_velocities();
@@ -60,6 +66,9 @@ class MD
 
         // Compute Lennard-Jones tail-correction to energy.
         double tailcorrection() const;
+
+        // Pre-compute pair sigma, and epsilons.
+        void precomputepairs();
 };
 
 #endif
