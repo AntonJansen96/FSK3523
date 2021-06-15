@@ -8,11 +8,8 @@ void MD::get_accelerations(size_t step)
 {
     // Reset our energy-logging data members if this is an output step.
     if (step % d_nstout == 0)
-    {
-        d_log_LJ_trun_energy = 0;
-        d_log_LJ_tail_energy = 0;
-    }
-    
+        d_log_LJ_energy = 0;
+
     // Initialize the forcegrids to 0.
     forcegrid accel_x(d_AtomList.size(), std::vector<double>(d_AtomList.size(), 0));
     forcegrid accel_y(d_AtomList.size(), std::vector<double>(d_AtomList.size(), 0));
@@ -67,7 +64,7 @@ void MD::get_accelerations(size_t step)
 
                 // Compute Lennard-Jones energy.
                 if (step % d_nstout == 0)
-                    d_log_LJ_trun_energy += 4 * epsilon * (factor * factor - factor);
+                    d_log_LJ_energy += 4 * epsilon * (factor * factor - factor);
 
                 // Decompose force.
                 double force_x = LJ_force * (r_x / rmag);
@@ -89,36 +86,6 @@ void MD::get_accelerations(size_t step)
                 accel_x[i][j] = 0; accel_x[j][i] = 0;
                 accel_y[i][j] = 0; accel_y[j][i] = 0;
                 accel_z[i][j] = 0; accel_z[j][i] = 0;
-
-                // Compute Lennard-Jones correction term.
-                if (step % d_nstout == 0)
-                {
-                    // Compute epsilon and sigma using arithmetic mean.
-                    double epsilon = 0.5 * (d_AtomList[i].epsilon + d_AtomList[j].epsilon); // kJ/mol.
-                    double sigma   = 0.5 * (d_AtomList[i].sigma   + d_AtomList[j].sigma);   // nm.
-
-                    // Compute the number density rho.
-                    double volume  = d_boxsize[0] * d_boxsize[1] * d_boxsize[2];
-                    double rho     = d_AtomList.size() / float(volume);
-                    
-                    // Compute sigma^3 and sigma^9
-                    double sigma_3 = sigma   * sigma   * sigma;
-                    double sigma_9 = sigma_3 * sigma_3 * sigma_3;
-
-                    // Compute r_c^3 and r_c^9
-                    double rc_3    = d_LJcutoff * d_LJcutoff * d_LJcutoff;
-                    double rc_9    = rc_3       * rc_3       * rc_3;
-
-                    // Compute pre-factor
-                    double factor  = (8.0 / 3.0) * constants::pi * rho * epsilon * sigma_3;
-                    
-                    // Compute repulsive and attractive terms.
-                    double repuls  = (1.0 / 3.0) * (sigma_9 / rc_9);
-                    double attrac  = sigma_3 / rc_3;
-                    
-                    // Compute and add tail energy term.
-                    d_log_LJ_tail_energy += factor * (repuls - attrac);
-                }
             }
         }
     }
@@ -128,6 +95,9 @@ void MD::get_accelerations(size_t step)
     std::vector<double> reduced_y(d_AtomList.size(), 0);
     std::vector<double> reduced_z(d_AtomList.size(), 0);
     
+    // Parallellizing the reduction of accelerations is thread-safe, 
+    // but slower for small systems.
+    // #pragma omp parallel for
     for (size_t i = 0; i < d_AtomList.size(); ++i)
     {
         for (size_t j = 0; j < d_AtomList.size(); ++j)

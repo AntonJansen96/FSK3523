@@ -21,9 +21,8 @@ class MD
     std::default_random_engine d_engine{1};
     
     // For energy logging.
-    double d_log_LJ_trun_energy = 0;
-    double d_log_LJ_tail_energy = 0;
-    double d_log_thermo_energy  = 0;
+    double d_log_LJ_energy     = 0;
+    double d_log_thermo_energy = 0;
 
     public:
         // Constructor.
@@ -57,6 +56,9 @@ class MD
         
         // Write the energies to energy.log.
         void writeEnergies(size_t step) const;
+
+        // Compute Lennard-Jones tail-correction to energy.
+        double tailcorrection() const;
 };
 
 #endif

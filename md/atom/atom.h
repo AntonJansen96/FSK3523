@@ -7,11 +7,11 @@
 class Atom
 {
     public:
-        size_t              idx;
-        std::string         name;
-        double              mass;
-        double              epsilon;
-        double              sigma;
+        size_t      const idx;
+        std::string const name;
+        double      const mass;
+        double      const epsilon;
+        double      const sigma;
         std::vector<double> x;
         std::vector<double> v;
         std::vector<double> a;
