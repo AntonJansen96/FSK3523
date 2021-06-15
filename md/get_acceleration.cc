@@ -60,9 +60,18 @@ void MD::get_accelerations(size_t step)
                 double repuls   = attrac * factor;
                 double LJ_force = 24 * epsilon * (2 * repuls - attrac);
 
-                // Compute Lennard-Jones energy.
+                // Compute truncated-shifted Lennard-Jones potential.
                 if (step % d_nstout == 0)
-                    d_log_LJ_energy += 4 * epsilon * (factor * factor - factor);
+                {
+                    // Lennard-Jones potential at r.
+                    double LJ_energy_r  = 4 * epsilon * (factor * factor - factor);
+                    // Lennard-Jones potential at rc.
+                    #warning "unefficient"
+                    double LJ_energy_rc = 4 * epsilon * (pow(sigma / d_LJcutoff, 12) - pow(sigma / d_LJcutoff, 6));
+
+                    // Shifted-trunacted Lennard-Jones energy.
+                    d_log_LJ_energy += LJ_energy_r - LJ_energy_rc;
+                }
 
                 // Decompose force.
                 double force_x = LJ_force * (r_x / rmag);
