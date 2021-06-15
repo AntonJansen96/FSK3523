@@ -48,7 +48,7 @@ void MD::get_accelerations(size_t step)
             double rmag_sq = r_x * r_x + r_y * r_y + r_z * r_z;
 
             // Compute Lennard-Jones energy and force.
-            if (rmag_sq <= d_LJcutoff * d_LJcutoff)
+            if (d_useLJ and rmag_sq <= d_LJcutoff * d_LJcutoff)
             {
                 double rmag = sqrt(rmag_sq);
                 

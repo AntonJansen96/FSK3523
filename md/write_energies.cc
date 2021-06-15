@@ -6,14 +6,14 @@ namespace {
 // v is in nm/ps = 1e3 m/s --> v^2 = (nm/ps)^2 = 1e6 (m/s)^2
 // m is in amu = 1.66e-27 kg
 static double const factor = (1'000'000 * constants::amu) / (2 * constants::kB);
-static double energy_LJ_tail;
+static double energy_LJ_tail = 0;
 static bool wroteHeader   = false;
 static bool hasLJtailcorr = false;
 }
 
 void MD::writeEnergies(size_t step) const
 {   // Compute the Lennard-Jones tail-correction the first time this function is called.
-    if (not hasLJtailcorr)
+    if (d_useLJ and not hasLJtailcorr)
     {
         energy_LJ_tail = this->tailcorrection();
         hasLJtailcorr  = true;

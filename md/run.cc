@@ -1,6 +1,20 @@
 #include "md.h"
 #include "stopwatch/stopwatch.h"
 
+namespace {
+void userUpdate(size_t step, size_t d_nsteps)
+{
+    printf
+    (
+        "\rstep %zu, %.1f%% (%zu)", 
+        step, 
+        100 * step/static_cast<double>(d_nsteps), d_nsteps
+    );
+    
+    fflush(stdout);
+}
+} // namespace
+
 void MD::run()
 {
     // Initialize Stopwatch objects for timing.
@@ -33,6 +47,8 @@ void MD::run()
         {
             this->writeFrame(step);
             this->writeEnergies(step);
+
+            userUpdate(step, d_nsteps);
         } timer5.stop();
     } timer2.stop();
 

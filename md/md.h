@@ -13,6 +13,7 @@ class MD
     double const d_T;
     double const d_tauT;
     double const d_LJcutoff;
+    bool   const d_useLJ;
     bool   const d_useThermostat;
     bool   const d_usePBC;
 
@@ -29,7 +30,7 @@ class MD
         MD
         (
             size_t nsteps, size_t nstout, double dt, double T, double tauT, 
-            double LJcutoff, bool useThermostat, bool usePBC, 
+            double LJcutoff, bool useLJ, bool useThermostat, bool usePBC, 
             std::vector<Atom> const &AtomList, 
             std::vector<double> const &boxsize
         );
