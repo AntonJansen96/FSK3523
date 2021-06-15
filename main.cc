@@ -12,9 +12,9 @@ int main()
 
     size_t idx = 1;
     std::vector<Atom> AtomList;
-    for (double x = 1; x < 30; x += 8)
-        for (double y = 1; y < 30; y += 8)
-            for (double z = 1; z < 30; z += 8)
+    for (double x = 1; x < 30; x += 4)
+        for (double y = 1; y < 30; y += 4)
+            for (double z = 1; z < 30; z += 4)
             {
                 if (idx % 2 == 0)
                 {

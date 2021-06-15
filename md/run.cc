@@ -24,6 +24,9 @@ void MD::run()
     Stopwatch timer4{"Integration"};
     Stopwatch timer5{"Output"}; timer5.reset();
 
+    // Pre-compute all the possible epsilon and sigma pairs.
+    this->precomputepairs();
+
     // Generate velocities.
     timer1.start(); this->generate_velocities(); timer1.stop();
 

@@ -1,5 +1,4 @@
 #include "md.h"
-#include <iostream>
 
 void MD::precomputepairs()
 {
