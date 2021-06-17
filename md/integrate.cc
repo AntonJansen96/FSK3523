@@ -60,15 +60,32 @@ void MD::integrate()
             // Get Ekin of the atom after thermostat and log energy difference.
             vmag_sq1 = atom.v[0] * atom.v[0] + atom.v[1] * atom.v[1] + atom.v[2] * atom.v[2];
             d_log_thermo_energy += 0.5 * atom.mass * (vmag_sq1 - vmag_sq0);
+
+            #ifdef DEBUG
+            printf("integrator: updating velocity of atom %zu using thermostat\n", atom.idx);
+            #endif            
         }
         else
         {   // Update velocities like normal.
             atom.v[0] += 0.5 * (atom.a[0] + atom.a_new[0]) * d_dt;
             atom.v[1] += 0.5 * (atom.a[1] + atom.a_new[1]) * d_dt;
-            atom.v[2] += 0.5 * (atom.a[2] + atom.a_new[2]) * d_dt;
+            atom.v[2] += 0.5 * (atom.a[2] + atom.a_new[2]) * d_dt;        
+            
+            #ifdef DEBUG
+            printf("integrator: updating velocity of atom %zu like normal:\n", atom.idx);
+            auto const a_mag_sq = atom.a[0] * atom.a[0] + atom.a[1] * atom.a[1] + atom.a[2] * atom.a[2];
+            printf("integrator: a_mag_sq = %f\n", a_mag_sq);
+            #endif
         }
 
         // Update accelerations.
         std::swap(atom.a, atom.a_new);
+        
+        #ifdef DEBUG
+        printf("integrator: swapping a and a_new\n");
+        auto const a_mag_sq = atom.a[0] * atom.a[0] + atom.a[1] * atom.a[1] + atom.a[2] * atom.a[2];
+        auto const a_new_mag_sq = atom.a_new[0] * atom.a_new[0] + atom.a_new[1] * atom.a_new[1] + atom.a_new[2] * atom.a_new[2];
+        printf("integrator: a_mag_sq = %f, a_new_mag_sq = %f\n", a_mag_sq, a_new_mag_sq);
+        #endif
     }
 }
