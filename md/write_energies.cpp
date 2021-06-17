@@ -22,10 +22,7 @@ void MD::writeEnergies(size_t step) const
     // Do loop for temperature and kinetic_energy.
     double mass_vmag_sq = 0;
     for (Atom const &atom : d_AtomList)
-    {
-        double vmag_sq = atom.v[0] * atom.v[0] + atom.v[1] * atom.v[1] + atom.v[2] * atom.v[2];
-        mass_vmag_sq += atom.mass * vmag_sq;
-    }
+        mass_vmag_sq += atom.mass * atom.vmag_sq();
     
     // Compute relevant energies.
     double temperature      = factor * mass_vmag_sq / d_AtomList.size();

@@ -21,7 +21,7 @@ MD::MD
     d_AtomList(AtomList),
     d_boxsize(boxsize)
 {
-    printf("Succesfully initialized MD object:\n");
+    printf("\nSuccesfully initialized MD object (%zu atoms):\n", d_AtomList.size());
     
     printf("nsteps        = %zu\n"  , d_nsteps);
     printf("nstout        = %zu\n"  , d_nstout);

@@ -79,8 +79,8 @@ void MD::get_accelerations(size_t step)
                 double rmag = sqrt(rmag_sq);
                 
                 // Combination rule (arithmetic mean).
-                double epsilon  = d_pairs_epsilon[i][j];
-                double sigma    = d_pairs_sigma[i][j];
+                double epsilon = d_pairs_eps[i][j];
+                double sigma   = d_pairs_sig[i][j];
 
                 #ifdef DEBUG
                 std::cout << "accelerate: within LJ_cutoff = " << d_LJcutoff << '\n';
@@ -164,9 +164,6 @@ void MD::get_accelerations(size_t step)
     std::cout << "z \n"; printgrid(Fgrid_z);
     #endif
 
-    // Parallellizing the reduction of accelerations is thread-safe, 
-    // but slower for small systems.
-    // #pragma omp parallel for
     for (size_t i = 0; i < d_AtomList.size(); ++i)
     {
         for (size_t j = 0; j < d_AtomList.size(); ++j)

@@ -14,6 +14,7 @@ typedef std::vector<std::vector<double>> grid;
 
 class MD
 {
+    // Molecular dynamics parameters.
     size_t const d_nsteps;
     size_t const d_nstout;
     double const d_dt;
@@ -24,16 +25,17 @@ class MD
     bool   const d_useThermostat;
     bool   const d_usePBC;
 
+    // The structure and topology.
     std::vector<Atom> d_AtomList;
     std::vector<double> const d_boxsize;
     std::default_random_engine d_engine{1};
 
-    // Stores pre-computed combinations of epsilon and sigma for speedup.
-    grid d_pairs_epsilon;
-    grid d_pairs_sigma;
+    // Stores pre-computed combinations of epsilon and sigma.
+    grid d_pairs_eps;
+    grid d_pairs_sig;
 
     // For energy logging.
-    double d_log_LJ_energy     = 0;
+    double d_log_LJ_energy = 0;
     double d_log_thermo_energy = 0;
 
     public:
@@ -60,7 +62,7 @@ class MD
         // Compute the forces/accelerations acting on the particles.
         void get_accelerations(size_t step);
         
-        // Update positions, velocities, and accelerations.
+        // Velocity-Verlet integrator. Update positions, velocities, and accelerations.
         void integrate();
         
         // Write trajectory frame to traj.pdb.
@@ -72,7 +74,7 @@ class MD
         // Compute Lennard-Jones tail-correction to energy.
         double tailcorrection() const;
 
-        // Pre-compute pair sigma, and epsilons.
+        // Pre-compute combinations of epsilon and sigma.
         void precomputepairs();
 };
 

@@ -36,28 +36,40 @@ void MD::run()
 
     // Do MD loop.
     timer2.start();
+
     for (size_t step = 1; step != d_nsteps + 1; ++step)
     {
         #ifdef DEBUG
         printf("\n*** step %zu ***\n\n", step);
-        #else
-        userUpdate(step, d_nsteps);
         #endif 
         
+        timer3.start();
+
         // Compute force.
-        timer3.start(); this->get_accelerations(step); timer3.stop();
+        this->get_accelerations(step);
+        
+        timer3.stop(); timer4.start();
 
         // Update configuration.
-        timer4.start(); this->integrate(); timer4.stop();
+        this->integrate();
+        
+        timer4.stop(); timer5.start();
 
         // Sample.
-        timer5.start();
         if (step % d_nstout == 0)
         {
             this->writeFrame(step);
             this->writeEnergies(step);
-        } timer5.stop();
-    } timer2.stop();
+
+            #ifndef DEBUG
+            userUpdate(step, d_nsteps);
+            #endif
+        }
+
+        timer5.stop(); // Sample.
+    }
+    
+    timer2.stop(); // MD-loop.
 
     printf("\n\n");
     timer1.time();    // Print generate velocities timing.

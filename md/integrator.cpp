@@ -12,7 +12,7 @@ static double const randMax = static_cast<double>(RAND_MAX);
 
 void MD::integrate()
 {
-    double sigma, vmag_sq0, vmag_sq1;
+    double sigma, vmag_sq0;
 
     for (Atom &atom : d_AtomList)
     {
@@ -21,30 +21,23 @@ void MD::integrate()
         atom.x[1] += (atom.v[1] + 0.5 * atom.a[1] * d_dt) * d_dt;
         atom.x[2] += (atom.v[2] + 0.5 * atom.a[2] * d_dt) * d_dt;
 
-        // Apply periodic boundary condition.
+        // Apply periodic boundary condition (PBC).
         if (d_usePBC)
         {
-            if (atom.x[0] >  d_boxsize[0])
-                atom.x[0] -= d_boxsize[0];
-            else if (atom.x[0] < 0)
-                atom.x[0] += d_boxsize[0];
-
-            if (atom.x[1] >  d_boxsize[1])
-                atom.x[1] -= d_boxsize[1];
-            else if (atom.x[1] < 0)
-                atom.x[1] += d_boxsize[1];
-
-            if (atom.x[2] >  d_boxsize[2])
-                atom.x[2] -= d_boxsize[2];
-            else if (atom.x[2] < 0)
-                atom.x[2] += d_boxsize[2];
+            for (size_t i : {0, 1, 2})
+            {
+                if (atom.x[i] > d_boxsize[i])
+                    atom.x[i] -= d_boxsize[i];
+                else if (atom.x[0] < 0.0)
+                    atom.x[i] += d_boxsize[i];
+            }
         }
 
         // Update velocities.
         if (d_useThermostat and ((rand() / randMax) < d_tauT * d_dt))
         {   
             // Get the velocity of the atom before thermostat.
-            vmag_sq0 = atom.v[0] * atom.v[0] + atom.v[1] * atom.v[1] + atom.v[2] * atom.v[2];
+            vmag_sq0 = atom.vmag_sq();
 
             // Standard deviation of Maxwell-Boltzmann distribution.
             sigma = sqrt((constants::kB * d_T) / (atom.mass * constants::amu));
@@ -58,8 +51,7 @@ void MD::integrate()
             atom.v[2] = factor * distN(d_engine);
             
             // Get Ekin of the atom after thermostat and log energy difference.
-            vmag_sq1 = atom.v[0] * atom.v[0] + atom.v[1] * atom.v[1] + atom.v[2] * atom.v[2];
-            d_log_thermo_energy += 0.5 * atom.mass * (vmag_sq1 - vmag_sq0);
+            d_log_thermo_energy += 0.5 * atom.mass * (atom.vmag_sq() - vmag_sq0);
 
             #ifdef DEBUG
             printf("integrator: updating velocity of atom %zu using thermostat\n", atom.idx);
@@ -73,8 +65,7 @@ void MD::integrate()
             
             #ifdef DEBUG
             printf("integrator: updating velocity of atom %zu like normal:\n", atom.idx);
-            auto const a_mag_sq = atom.a[0] * atom.a[0] + atom.a[1] * atom.a[1] + atom.a[2] * atom.a[2];
-            printf("integrator: a_mag_sq = %f\n", a_mag_sq);
+            printf("integrator: a_mag_sq = %f\n", atom.amag_sq());
             #endif
         }
 
@@ -83,9 +74,7 @@ void MD::integrate()
         
         #ifdef DEBUG
         printf("integrator: swapping a and a_new\n");
-        auto const a_mag_sq = atom.a[0] * atom.a[0] + atom.a[1] * atom.a[1] + atom.a[2] * atom.a[2];
-        auto const a_new_mag_sq = atom.a_new[0] * atom.a_new[0] + atom.a_new[1] * atom.a_new[1] + atom.a_new[2] * atom.a_new[2];
-        printf("integrator: a_mag_sq = %f, a_new_mag_sq = %f\n", a_mag_sq, a_new_mag_sq);
+        printf("integrator: a_mag_sq = %f, a_new_mag_sq = %f\n", atom.amag_sq(), atom.a_new_mag_sq());
         #endif
     }
 }

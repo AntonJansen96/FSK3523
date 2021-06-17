@@ -1,14 +1,14 @@
 CXX := g++-10
 CXXFLAGS += -Wall -std=c++20 -O3 -fopenmp
 
-LIBSRCS = $(filter-out main.cc,$(shell find -name \*.cc))
+LIBSRCS = $(filter-out main.cpp,$(shell find -name \*.cpp))
 
-LIBOBJS = $(patsubst %.cc,%.o,$(LIBSRCS))
+LIBOBJS = $(patsubst %.cpp,%.o,$(LIBSRCS))
 
 main: main.o libproject.a
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) -L. -o $@ $< -l project
 
-$(LIBOBJS): %.o: %.cc
+$(LIBOBJS): %.o: %.cpp
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $<
 
 libproject.a: $(LIBOBJS)

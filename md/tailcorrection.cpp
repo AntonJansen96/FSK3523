@@ -6,8 +6,8 @@ double MD::tailcorrection() const
     double energy = 0;
 
     // Compute the number density rho outside of loop.
-    double volume = d_boxsize[0] * d_boxsize[1] * d_boxsize[2];
-    double rho    = d_AtomList.size() / volume;
+    double const volume = d_boxsize[0] * d_boxsize[1] * d_boxsize[2];
+    double const rho    = d_AtomList.size() / volume;
 
     // We loop over all atoms because epsilon and sigma may be different.
     for (Atom const &atom : d_AtomList)
