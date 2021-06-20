@@ -19,7 +19,8 @@ MD::MD
     d_useThermostat(useThermostat),
     d_usePBC(usePBC),
     d_AtomList(AtomList),
-    d_boxsize(boxsize)
+    d_boxsize(boxsize),
+    d_emptyFgrid(grid(d_AtomList.size(), std::vector<double>(d_AtomList.size(), 0)))
 {
     printf("\nSuccesfully initialized MD object (%zu atoms):\n", d_AtomList.size());
     

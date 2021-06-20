@@ -38,6 +38,10 @@ class MD
     double d_log_LJ_energy = 0;
     double d_log_thermo_energy = 0;
 
+    // For speedup of computeforces().
+    grid const d_emptyFgrid;
+    grid d_Fgrid_x, d_Fgrid_y, d_Fgrid_z;
+
     public:
         // Constructor.
         MD
@@ -60,8 +64,17 @@ class MD
         void generate_velocities();
         
         // Compute the forces/accelerations acting on the particles.
-        void get_accelerations(size_t step);
-        
+        void computeforces(size_t step);
+
+        // Pre-compute combinations of epsilon and sigma.
+        void precomputepairs();
+
+        // Compute Lennard-Jones tail-correction to energy.
+        double tailcorrection() const;
+
+        // Reduces the forces from the force grids and updates the accelerations.
+        void reduceforces();
+
         // Velocity-Verlet integrator. Update positions, velocities, and accelerations.
         void integrate();
         
@@ -70,12 +83,6 @@ class MD
         
         // Write the energies to energy.log.
         void writeEnergies(size_t step) const;
-
-        // Compute Lennard-Jones tail-correction to energy.
-        double tailcorrection() const;
-
-        // Pre-compute combinations of epsilon and sigma.
-        void precomputepairs();
 };
 
 #endif

@@ -2,6 +2,8 @@
 
 int main()
 {
+    omp_set_num_threads(8); // Multithreading.
+
     std::vector<Atom> const AtomList = genlattice(0.5, {3, 3, 3});
 
     MD

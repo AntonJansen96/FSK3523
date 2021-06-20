@@ -12,28 +12,27 @@ void printgrid(grid const &input)
         easy::print(vec);
 }
 } // namespace
-
 #endif
 
-void MD::get_accelerations(size_t step)
+void MD::computeforces(size_t step)
 {
     // Reset our energy-logging data members if this is an output step.
     if (step % d_nstout == 0)
         d_log_LJ_energy = 0;
 
-    // Initialize the forcegrids to 0.
-    grid Fgrid_x(d_AtomList.size(), std::vector<double>(d_AtomList.size(), 0));
-    grid Fgrid_y(d_AtomList.size(), std::vector<double>(d_AtomList.size(), 0));
-    grid Fgrid_z(d_AtomList.size(), std::vector<double>(d_AtomList.size(), 0));
+    d_Fgrid_x = d_emptyFgrid; // No construction + move, only a copy (= way faster).
+    d_Fgrid_y = d_emptyFgrid; // No construction + move, only a copy (= way faster).
+    d_Fgrid_z = d_emptyFgrid; // No construction + move, only a copy (= way faster).
 
     #ifdef DEBUG
     std::cout << "accelerate: initialized force grids:\n";
-    std::cout << "x \n"; printgrid(Fgrid_x);
-    std::cout << "y \n"; printgrid(Fgrid_y);
-    std::cout << "z \n"; printgrid(Fgrid_z);
+    std::cout << "x \n"; printgrid(d_Fgrid_x);
+    std::cout << "y \n"; printgrid(d_Fgrid_y);
+    std::cout << "z \n"; printgrid(d_Fgrid_z);
     #endif
 
     // Loop over all combinations.
+    #pragma omp parallel for
     for (size_t i = 0; i != d_AtomList.size() - 1; ++i)
     {
         for (size_t j = i + 1; j != d_AtomList.size(); ++j)
@@ -98,12 +97,15 @@ void MD::get_accelerations(size_t step)
                 {
                     // Lennard-Jones potential at r.
                     double LJ_energy_r  = 4 * epsilon * (factor * factor - factor);
+
                     // Lennard-Jones potential at rc.
-                    #warning "unefficient"
                     double LJ_energy_rc = 4 * epsilon * (pow(sigma / d_LJcutoff, 12) - pow(sigma / d_LJcutoff, 6));
 
-                    // Shifted-trunacted Lennard-Jones energy.
-                    d_log_LJ_energy += LJ_energy_r - LJ_energy_rc;
+                    // Add the shifted-trunacted Lennard-Jones energy to total.
+                    #pragma omp critical
+                    {
+                        d_log_LJ_energy += LJ_energy_r - LJ_energy_rc;
+                    }
 
                     #ifdef DEBUG
                     std::cout << "accelerate: LJ-force " << LJ_force << ", LJ-energy " << LJ_energy_r - LJ_energy_rc << '\n';
@@ -116,85 +118,32 @@ void MD::get_accelerations(size_t step)
                 double force_z = LJ_force * (r_z / rmag);
 
                 // Fill the force grid.
-                Fgrid_x[i][j] +=   force_x;
-                Fgrid_x[j][i] += - force_x;
+                d_Fgrid_x[i][j] =   force_x;
+                d_Fgrid_x[j][i] = - force_x;
 
-                Fgrid_y[i][j] +=   force_y;
-                Fgrid_y[j][i] += - force_y;
+                d_Fgrid_y[i][j] =   force_y;
+                d_Fgrid_y[j][i] = - force_y;
 
-                Fgrid_z[i][j] +=   force_z;
-                Fgrid_z[j][i] += - force_z;
+                d_Fgrid_z[i][j] =   force_z;
+                d_Fgrid_z[j][i] = - force_z;
 
             #ifdef DEBUG
                 std::cout << "accelerate: force_x = " << force_x << '\n';
                 std::cout << "accelerate: force_y = " << force_y << '\n';
                 std::cout << "accelerate: force_z = " << force_z << "\nn";
 
-                std::cout << "accelerate: force_x of " << d_AtomList[i].idx << " on " << d_AtomList[j].idx << " = " << Fgrid_x[i][j] << '\n';
-                std::cout << "accelerate: force_x of " << d_AtomList[j].idx << " on " << d_AtomList[i].idx << " = " << Fgrid_x[j][i] << '\n';
+                std::cout << "accelerate: force_x of " << d_AtomList[i].idx << " on " << d_AtomList[j].idx << " = " << d_Fgrid_x[i][j] << '\n';
+                std::cout << "accelerate: force_x of " << d_AtomList[j].idx << " on " << d_AtomList[i].idx << " = " << d_Fgrid_x[j][i] << '\n';
 
-                std::cout << "accelerate: force_y of " << d_AtomList[i].idx << " on " << d_AtomList[j].idx << " = " << Fgrid_y[i][j] << '\n';
-                std::cout << "accelerate: force_y of " << d_AtomList[j].idx << " on " << d_AtomList[i].idx << " = " << Fgrid_y[j][i] << '\n';
+                std::cout << "accelerate: force_y of " << d_AtomList[i].idx << " on " << d_AtomList[j].idx << " = " << d_Fgrid_y[i][j] << '\n';
+                std::cout << "accelerate: force_y of " << d_AtomList[j].idx << " on " << d_AtomList[i].idx << " = " << d_Fgrid_y[j][i] << '\n';
 
-                std::cout << "accelerate: force_z of " << d_AtomList[i].idx << " on " << d_AtomList[j].idx << " = " << Fgrid_z[i][j] << '\n';
-                std::cout << "accelerate: force_z of " << d_AtomList[j].idx << " on " << d_AtomList[i].idx << " = " << Fgrid_z[j][i] << '\n';
-            }
-            else
-            {
-                std::cout << "accelerate: otuside LJ_cutoff = " << d_LJcutoff << '\n';
+                std::cout << "accelerate: force_z of " << d_AtomList[i].idx << " on " << d_AtomList[j].idx << " = " << d_Fgrid_z[i][j] << '\n';
+                std::cout << "accelerate: force_z of " << d_AtomList[j].idx << " on " << d_AtomList[i].idx << " = " << d_Fgrid_z[j][i] << '\n';
             #endif
             }
         }
     }
 
-    // Reduce forces.
-    std::vector<double> reduced_x(d_AtomList.size(), 0);
-    std::vector<double> reduced_y(d_AtomList.size(), 0);
-    std::vector<double> reduced_z(d_AtomList.size(), 0);
-
-    #ifdef DEBUG
-    std::cout << "\naccelerate: initialized reduction vectors:\n";
-    std::cout << "x \n"; easy::print(reduced_x);
-    std::cout << "y \n"; easy::print(reduced_y);
-    std::cout << "z \n"; easy::print(reduced_z);
-
-    std::cout << "\naccelerate: the force grids:\n";
-    std::cout << "x \n"; printgrid(Fgrid_x);
-    std::cout << "y \n"; printgrid(Fgrid_y);
-    std::cout << "z \n"; printgrid(Fgrid_z);
-    #endif
-
-    for (size_t i = 0; i < d_AtomList.size(); ++i)
-    {
-        for (size_t j = 0; j < d_AtomList.size(); ++j)
-        {
-            reduced_x[i] += Fgrid_x[j][i];
-            reduced_y[i] += Fgrid_y[j][i];
-            reduced_z[i] += Fgrid_z[j][i];
-        }
-    }
-
-    #ifdef DEBUG
-    std::cout << "\naccelerate: reduced vectors:\n";
-    std::cout << "accelerate: "; std::cout << "x = "; easy::print(reduced_x);
-    std::cout << "accelerate: "; std::cout << "y = "; easy::print(reduced_y);
-    std::cout << "accelerate: "; std::cout << "z = "; easy::print(reduced_z);
-    std::cout << "\naccelerate: update a_new:\n\n";
-    #endif
-
-    // Update the accelerations.
-    for (size_t i = 0; i != d_AtomList.size(); ++i)
-    {
-        d_AtomList[i].a_new[0] = reduced_x[i] / d_AtomList[i].mass;
-        d_AtomList[i].a_new[1] = reduced_y[i] / d_AtomList[i].mass;
-        d_AtomList[i].a_new[2] = reduced_z[i] / d_AtomList[i].mass;
-
-        #ifdef DEBUG
-        std::cout << "accelerate: atom " << d_AtomList[i].idx << '\n';
-        std::cout << "accelerate: a_new_x   = " << reduced_x[i] / d_AtomList[i].mass << '\n';
-        std::cout << "accelerate: a_new_y   = " << reduced_y[i] / d_AtomList[i].mass << '\n';
-        std::cout << "accelerate: a_new_z   = " << reduced_z[i] / d_AtomList[i].mass << '\n';
-        std::cout << "accelerate: a_new_mag = " << (reduced_x[i] * reduced_x[i] + reduced_y[i] * reduced_y[i] + reduced_z[i] * reduced_z[i]) / d_AtomList[i].mass << "\n\n";
-        #endif
-    }
+    this->reduceforces();
 }

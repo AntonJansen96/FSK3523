@@ -46,7 +46,7 @@ void MD::run()
         timer3.start();
 
         // Compute force.
-        this->get_accelerations(step);
+        this->computeforces(step);
         
         timer3.stop(); timer4.start();
 
