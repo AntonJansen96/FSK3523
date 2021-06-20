@@ -28,7 +28,7 @@ void MD::integrate()
             {
                 if (atom.x[i] > d_boxsize[i])
                     atom.x[i] -= d_boxsize[i];
-                else if (atom.x[0] < 0.0)
+                else if (atom.x[i] < 0.0)
                     atom.x[i] += d_boxsize[i];
             }
         }
