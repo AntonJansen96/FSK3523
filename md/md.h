@@ -41,6 +41,7 @@ class MD
     // For speedup of computeforces().
     grid const d_emptyFgrid;
     grid d_Fgrid_x, d_Fgrid_y, d_Fgrid_z;
+    double const d_LJcutoff_6;
 
     public:
         // Constructor.

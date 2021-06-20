@@ -20,7 +20,8 @@ MD::MD
     d_usePBC(usePBC),
     d_AtomList(AtomList),
     d_boxsize(boxsize),
-    d_emptyFgrid(grid(d_AtomList.size(), std::vector<double>(d_AtomList.size(), 0)))
+    d_emptyFgrid(grid(d_AtomList.size(), std::vector<double>(d_AtomList.size(), 0))),
+    d_LJcutoff_6(d_LJcutoff * d_LJcutoff * d_LJcutoff * d_LJcutoff * d_LJcutoff * d_LJcutoff)
 {
     printf("\nSuccesfully initialized MD object (%zu atoms):\n", d_AtomList.size());
     
