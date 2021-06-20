@@ -5,8 +5,8 @@ namespace {
 // Instantaneous temperature = sum(mv^2) / 2Nk_B
 // v is in nm/ps = 1e3 m/s --> v^2 = (nm/ps)^2 = 1e6 (m/s)^2
 // m is in amu = 1.66e-27 kg
-static double const factor = (1'000'000 * constants::amu) / (2 * constants::kB);
-static double energy_LJ_tail = 0;
+static real const factor = (1'000'000 * constants::amu) / (2 * constants::kB);
+static real energy_LJ_tail = 0;
 static bool wroteHeader   = false;
 static bool hasLJtailcorr = false;
 }
@@ -20,17 +20,17 @@ void MD::writeEnergies(size_t step) const
     }
 
     // Do loop for temperature and kinetic_energy.
-    double mass_vmag_sq = 0;
+    real mass_vmag_sq = 0;
     for (Atom const &atom : d_AtomList)
         mass_vmag_sq += atom.mass * atom.vmag_sq();
     
     // Compute relevant energies.
-    double temperature      = factor * mass_vmag_sq / d_AtomList.size();
-    double energy_kinetic   = 0.5 * mass_vmag_sq;
-    double work_thermostat  = d_log_thermo_energy;
-    double energy_LJ        = d_log_LJ_energy;
-    double energy_LJ_total  = energy_LJ + energy_LJ_tail;
-    double energy_conserved = (energy_kinetic - work_thermostat) + energy_LJ_total;
+    real temperature      = factor * mass_vmag_sq / d_AtomList.size();
+    real energy_kinetic   = 0.5 * mass_vmag_sq;
+    real work_thermostat  = d_log_thermo_energy;
+    real energy_LJ        = d_log_LJ_energy;
+    real energy_LJ_total  = energy_LJ + energy_LJ_tail;
+    real energy_conserved = (energy_kinetic - work_thermostat) + energy_LJ_total;
 
     auto file = fopen("energy.log", "a");
 

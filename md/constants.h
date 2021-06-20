@@ -1,3 +1,6 @@
+#ifndef CONSTANTS_H
+#define CONSTANTS_H
+
 namespace constants
 {
     double const N   = 6.02214129e23;    // mol^-1
@@ -5,3 +8,5 @@ namespace constants
     double const amu = 1.660539066e-27;  // kg
     double const pi  = 3.141592654;
 }
+
+#endif

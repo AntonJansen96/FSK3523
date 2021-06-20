@@ -8,7 +8,7 @@ void userUpdate(size_t step, size_t d_nsteps)
     (
         "\rstep %zu, %.1f%% (%zu)", 
         step, 
-        100 * step/static_cast<double>(d_nsteps), d_nsteps
+        100 * step/static_cast<real>(d_nsteps), d_nsteps
     );
     
     fflush(stdout);

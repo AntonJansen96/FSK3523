@@ -5,14 +5,14 @@
 namespace {
 // We go from m/s to nm/ps so we have a factor 0.001. Furthermore, we have 
 // a sqrt(2) from 0.5mv^2 and 1/sqrt(3) from vector calculus.
-static double const factor  = 0.001 * sqrt(2.0 / 3.0);
+static real const factor  = 0.001 * sqrt(2.0 / 3.0);
 // Do not do this static cast in the loop.
-static double const randMax = static_cast<double>(RAND_MAX);
+static real const randMax = static_cast<real>(RAND_MAX);
 } // Namespace.
 
 void MD::integrate()
 {
-    double sigma, vmag_sq0;
+    real sigma, vmag_sq0;
 
     for (Atom &atom : d_AtomList)
     {
@@ -43,7 +43,7 @@ void MD::integrate()
             sigma = sqrt((constants::kB * d_T) / (atom.mass * constants::amu));
             
             // Generate normal distribution with mean = 0 and sdev = sigma.
-            std::normal_distribution<double> distN(0, sigma);
+            std::normal_distribution<real> distN(0, sigma);
 
             // Get new velocities from Maxwell-Boltzmann distribution.
             atom.v[0] = factor * distN(d_engine);

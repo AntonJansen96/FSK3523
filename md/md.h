@@ -1,27 +1,28 @@
 #ifndef MD_H
 #define MD_H
 
+#include "../precision.h"
 #include "atom/atom.h"
 #include <random>
 
-typedef std::vector<std::vector<double>> grid;
+typedef std::vector<std::vector<real>> grid;
 
 class MD
 {
     // Molecular dynamics parameters.
     size_t const d_nsteps;
     size_t const d_nstout;
-    double const d_dt;
-    double const d_T;
-    double const d_tauT;
-    double const d_LJcutoff;
+    real   const d_dt;
+    real   const d_T;
+    real   const d_tauT;
+    real   const d_LJcutoff;
     bool   const d_useLJ;
     bool   const d_useThermostat;
     bool   const d_usePBC;
 
     // The structure and topology.
     std::vector<Atom> d_AtomList;
-    std::vector<double> const d_boxsize;
+    std::vector<real> const d_boxsize;
     std::default_random_engine d_engine{1};
 
     // Stores pre-computed combinations of epsilon and sigma.
@@ -29,22 +30,22 @@ class MD
     grid d_pairs_sig;
 
     // For energy logging.
-    double d_log_LJ_energy = 0;
-    double d_log_thermo_energy = 0;
+    real d_log_LJ_energy = 0;
+    real d_log_thermo_energy = 0;
 
     // For speedup of computeforces().
     grid const d_emptyFgrid;
     grid d_Fgrid_x, d_Fgrid_y, d_Fgrid_z;
-    double const d_LJcutoff_6;
+    real const d_LJcutoff_6;
 
     public:
         // Constructor.
         MD
         (
-            size_t nsteps, size_t nstout, double dt, double T, double tauT, 
-            double LJcutoff, bool useLJ, bool useThermostat, bool usePBC, 
+            size_t nsteps, size_t nstout, real dt, real T, real tauT, 
+            real LJcutoff, bool useLJ, bool useThermostat, bool usePBC, 
             std::vector<Atom> const &AtomList, 
-            std::vector<double> const &boxsize
+            std::vector<real> const &boxsize
         );
 
         // This object is not meant to be copied or moved.
@@ -65,7 +66,7 @@ class MD
         void precomputepairs();
 
         // Compute Lennard-Jones tail-correction to energy.
-        double tailcorrection() const;
+        real tailcorrection() const;
 
         // Reduces the forces from the force grids and updates the accelerations.
         void reduceforces();

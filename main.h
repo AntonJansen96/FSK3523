@@ -1,8 +1,9 @@
 #include "md/md.h"
+#include "precision.h"
 #include <omp.h>
 
 // Generate a 3D lattice of particles for a given spacing and box size.
-std::vector<Atom> genlattice(double spacing, std::vector<size_t> const &boxsize);
+std::vector<Atom> genlattice(real spacing, std::vector<size_t> const &boxsize);
 
 // Lattice for testing.
 std::vector<Atom> const testLattice = 

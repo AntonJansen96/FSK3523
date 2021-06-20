@@ -18,9 +18,9 @@ void MD::computeforces(size_t step)
         for (size_t j = i + 1; j != d_AtomList.size(); ++j)
         {
             // Get the distance in each dimension.
-            double r_x = d_AtomList[j].x[0] - d_AtomList[i].x[0];
-            double r_y = d_AtomList[j].x[1] - d_AtomList[i].x[1];
-            double r_z = d_AtomList[j].x[2] - d_AtomList[i].x[2];
+            real r_x = d_AtomList[j].x[0] - d_AtomList[i].x[0];
+            real r_y = d_AtomList[j].x[1] - d_AtomList[i].x[1];
+            real r_z = d_AtomList[j].x[2] - d_AtomList[i].x[2];
 
             // Apply minimum image convention.
             if (d_usePBC)
@@ -42,32 +42,32 @@ void MD::computeforces(size_t step)
             }
 
             // Compute the distance.
-            double const rmag_sq = r_x * r_x + r_y * r_y + r_z * r_z;
+            real const rmag_sq = r_x * r_x + r_y * r_y + r_z * r_z;
 
             // Compute Lennard-Jones energy and force.
             if (d_useLJ and rmag_sq <= d_LJcutoff * d_LJcutoff)
             {
-                double const rmag = sqrt(rmag_sq);
+                real const rmag = sqrt(rmag_sq);
 
                 // Combination rule (arithmetic mean).
-                double const epsilon = d_pairs_eps[i][j];
-                double const sigma   = d_pairs_sig[i][j];
-                double const sigma6  = sigma * sigma * sigma * sigma * sigma * sigma;
+                real const epsilon = d_pairs_eps[i][j];
+                real const sigma   = d_pairs_sig[i][j];
+                real const sigma6  = sigma * sigma * sigma * sigma * sigma * sigma;
 
                 // Compute Lennard-Jones force.
-                double const factor1  = sigma6 / (rmag_sq * rmag_sq * rmag_sq);
-                double const attrac   = factor1 / rmag;
-                double const repuls   = attrac * factor1;
-                double const LJ_force = 24 * epsilon * (2 * repuls - attrac);
+                real const factor1  = sigma6 / (rmag_sq * rmag_sq * rmag_sq);
+                real const attrac   = factor1 / rmag;
+                real const repuls   = attrac * factor1;
+                real const LJ_force = 24 * epsilon * (2 * repuls - attrac);
 
                 // Compute truncated-shifted Lennard-Jones potential.
                 if (step % d_nstout == 0)
                 {
-                    double factor2 = sigma6 / d_LJcutoff_6;
+                    real factor2 = sigma6 / d_LJcutoff_6;
 
                     // Lennard-Jones factors for r and rc.
-                    double const LJ_factor_r  = factor1 * factor1 - factor1;
-                    double const LJ_factor_rc = factor2 * factor2 - factor2;
+                    real const LJ_factor_r  = factor1 * factor1 - factor1;
+                    real const LJ_factor_rc = factor2 * factor2 - factor2;
 
                     // Add the shifted-trunacted Lennard-Jones energy to total.
                     #pragma omp critical
@@ -77,9 +77,9 @@ void MD::computeforces(size_t step)
                 }
 
                 // Decompose force.
-                double const force_x = LJ_force * (r_x / rmag);
-                double const force_y = LJ_force * (r_y / rmag);
-                double const force_z = LJ_force * (r_z / rmag);
+                real const force_x = LJ_force * (r_x / rmag);
+                real const force_y = LJ_force * (r_y / rmag);
+                real const force_z = LJ_force * (r_z / rmag);
 
                 // Fill the force grid.
                 d_Fgrid_x[i][j] =   force_x;

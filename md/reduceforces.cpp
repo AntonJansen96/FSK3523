@@ -9,9 +9,9 @@ void MD::reduceforces()
     #pragma omp parallel for
     for (size_t i = 0; i < d_AtomList.size(); ++i)
     {
-        double Fx = 0;
-        double Fy = 0;
-        double Fz = 0;
+        real Fx = 0;
+        real Fy = 0;
+        real Fz = 0;
 
         for (size_t j = 0; j < d_AtomList.size(); ++j)
         {

@@ -3,10 +3,10 @@
 // Constructor.
 MD::MD
 (
-    size_t nsteps, size_t nstout, double dt, double T, double tauT, 
-    double LJcutoff, bool useLJ, bool useThermostat, bool usePBC, 
+    size_t nsteps, size_t nstout, real dt, real T, real tauT, 
+    real LJcutoff, bool useLJ, bool useThermostat, bool usePBC, 
     std::vector<Atom> const &AtomList, 
-    std::vector<double> const &boxsize
+    std::vector<real> const &boxsize
 )
 :
     d_nsteps(nsteps),
@@ -20,7 +20,7 @@ MD::MD
     d_usePBC(usePBC),
     d_AtomList(AtomList),
     d_boxsize(boxsize),
-    d_emptyFgrid(grid(d_AtomList.size(), std::vector<double>(d_AtomList.size(), 0))),
+    d_emptyFgrid(grid(d_AtomList.size(), std::vector<real>(d_AtomList.size(), 0))),
     d_LJcutoff_6(d_LJcutoff * d_LJcutoff * d_LJcutoff * d_LJcutoff * d_LJcutoff * d_LJcutoff)
 {
     printf("\nSuccesfully initialized MD object (%zu atoms):\n", d_AtomList.size());

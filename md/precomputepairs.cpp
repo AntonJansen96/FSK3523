@@ -3,8 +3,8 @@
 void MD::precomputepairs()
 {
     // Give the grids the proper size.
-    d_pairs_eps.resize(d_AtomList.size(), std::vector<double>(d_AtomList.size()));
-    d_pairs_sig.resize(d_AtomList.size(), std::vector<double>(d_AtomList.size()));
+    d_pairs_eps.resize(d_AtomList.size(), std::vector<real>(d_AtomList.size()));
+    d_pairs_sig.resize(d_AtomList.size(), std::vector<real>(d_AtomList.size()));
 
     // Loop over all combinations.
     for (size_t i = 0; i != d_AtomList.size() - 1; ++i)
