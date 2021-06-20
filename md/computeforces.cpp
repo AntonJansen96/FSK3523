@@ -1,5 +1,4 @@
 #include "md.h"
-#include "constants.h"
 #include <math.h>
 
 void MD::computeforces(size_t step)

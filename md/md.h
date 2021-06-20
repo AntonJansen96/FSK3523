@@ -1,13 +1,7 @@
 #ifndef MD_H
 #define MD_H
 
-// #define DEBUG
-#ifdef DEBUG
-#include "easy.h"
-#endif
-
 #include "atom/atom.h"
-#include <vector>
 #include <random>
 
 typedef std::vector<std::vector<double>> grid;

@@ -39,10 +39,6 @@ void MD::run()
 
     for (size_t step = 1; step != d_nsteps + 1; ++step)
     {
-        #ifdef DEBUG
-        printf("\n*** step %zu ***\n\n", step);
-        #endif 
-        
         timer3.start();
 
         // Compute force.
@@ -60,10 +56,6 @@ void MD::run()
         {
             this->writeFrame(step);
             this->writeEnergies(step);
-
-            #ifndef DEBUG
-            userUpdate(step, d_nsteps);
-            #endif
         }
 
         timer5.stop(); // Sample.
