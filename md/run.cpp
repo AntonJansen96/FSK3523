@@ -56,6 +56,8 @@ void MD::run()
         {
             this->writeFrame(step);
             this->writeEnergies(step);
+
+            userUpdate(step, d_nsteps);
         }
 
         timer5.stop(); // Sample.
