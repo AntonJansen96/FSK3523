@@ -1,4 +1,5 @@
 #include "md.h"
+#include <math.h>
 
 void MD::precomputepairs()
 {
@@ -11,9 +12,10 @@ void MD::precomputepairs()
     {
         for (size_t j = i + 1; j != d_AtomList.size(); ++j)
         {
-            // For each combination, set the sigma and epsilon.
-            d_pairs_eps[i][j] = 0.5 * (d_AtomList[i].epsilon + d_AtomList[j].epsilon);
-            d_pairs_sig[i][j] = 0.5 * (d_AtomList[i].sigma   + d_AtomList[j].sigma);
+            // e_ij = sqrt(e_i * e_j)
+            d_pairs_eps[i][j] = sqrt(d_AtomList[i].epsilon * d_AtomList[j].epsilon);
+            // s_ij = (s_i + s_j) / 2
+            d_pairs_sig[i][j] = (d_AtomList[i].sigma + d_AtomList[j].sigma) / 2.0;
         }
     }
 }
