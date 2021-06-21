@@ -63,16 +63,16 @@ void MD::computeforces(size_t step)
                 // Compute truncated-shifted Lennard-Jones potential.
                 if (step % d_nstout == 0)
                 {
-                    real factor2 = sigma6 / d_LJcutoff_6;
+                    real const factor2 = sigma6 / d_LJcutoff_6;
 
                     // Lennard-Jones factors for r and rc.
-                    real const LJ_factor_r  = factor1 * factor1 - factor1;
-                    real const LJ_factor_rc = factor2 * factor2 - factor2;
+                    real LJ_energy_r  = 4 * epsilon * (factor1 * factor1 - factor1);
+                    real LJ_energy_rc = 4 * epsilon * (factor2 * factor2 - factor2);
 
                     // Add the shifted-trunacted Lennard-Jones energy to total.
                     #pragma omp critical
                     {
-                        d_log_LJ_energy += 4 * epsilon * (LJ_factor_r - LJ_factor_rc);
+                        d_log_LJ_energy += LJ_energy_r - LJ_energy_rc;
                     }
                 }
 

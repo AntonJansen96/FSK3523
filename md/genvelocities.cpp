@@ -2,11 +2,8 @@
 #include "constants.h"
 #include <math.h>
 
-namespace {
 // We go from m/s to nm/ps so we have a factor 0.001. Furthermore, we have 
 // a sqrt(2) from 0.5mv^2 and 1/sqrt(3) from vector calculus.
-static real const factor = 0.001 * sqrt(2.0 / 3.0);
-} // Namespace.
 
 void MD::generate_velocities()
 {
@@ -20,8 +17,8 @@ void MD::generate_velocities()
         std::normal_distribution<real> distN(0, sigma);
 
         // Generate velocities.
-        atom.v[0] = factor * distN(d_engine);
-        atom.v[1] = factor * distN(d_engine);
-        atom.v[2] = factor * distN(d_engine);
+        atom.v[0] = 0.001 * sqrt(2.0 / 3.0) * distN(d_engine);
+        atom.v[1] = 0.001 * sqrt(2.0 / 3.0) * distN(d_engine);
+        atom.v[2] = 0.001 * sqrt(2.0 / 3.0) * distN(d_engine);
     }
 }
