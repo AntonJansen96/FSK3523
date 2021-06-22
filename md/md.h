@@ -56,29 +56,32 @@ class MD
         void run();
 
     private:
-        // Generate initial velocities from Maxwell-Boltzmann distribution.
-        void generate_velocities();
-        
-        // Compute the forces/accelerations acting on the particles.
-        void computeforces(size_t step);
-
         // Pre-compute combinations of epsilon and sigma.
         void precomputepairs();
 
-        // Compute Lennard-Jones tail-correction to energy.
-        real tailcorrection() const;
+        // Generate initial velocities from Maxwell-Boltzmann distribution.
+        void generate_velocities();
+
+        // Velocity-Verlet step one. Update positions and apply PBC.
+        void velocityVerlet1();
+
+        // Compute the forces acting on the particles.
+        void computeforces(size_t step);
 
         // Reduces the forces from the force grids and updates the accelerations.
         void reduceforces();
 
-        // Velocity-Verlet integrator. Update positions, velocities, and accelerations.
-        void integrate();
-        
+        // Velocity-Verlet step two. Update velocities and accelerations.
+        void velocityVerlet2();
+
         // Write trajectory frame to traj.pdb.
         void writeFrame(size_t step) const;
         
         // Write the energies to energy.log.
         void writeEnergies(size_t step) const;
+
+        // Compute Lennard-Jones tail-correction to energy.
+        real tailcorrection() const;
 };
 
 #endif
