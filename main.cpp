@@ -8,9 +8,9 @@ int main()
 
     MD
     (
-        50'000,     // nsteps
-        100,        // nstout
-        0.0002,     // dt (ps)
+        10'000,     // nsteps
+        50,         // nstout
+        0.002,      // dt (ps)
         300,        // T (K)
         1,          // tauT
         1.2,        // LJcutoff (nm)
