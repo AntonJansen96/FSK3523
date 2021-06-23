@@ -1,9 +1,17 @@
 #ifndef ATOM_H
 #define ATOM_H
 
+#include "../../definitions.h"
 #include <vector>
 #include <string>
-#include "../../precision.h"
+
+#ifdef SINGLE
+typedef float real;
+#endif
+
+#ifdef DOUBLE
+typedef double real;
+#endif 
 
 class Atom
 {

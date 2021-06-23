@@ -1,0 +1,2 @@
+#define SINGLE
+// #define DOUBLE

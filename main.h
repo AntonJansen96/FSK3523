@@ -1,5 +1,5 @@
 #include "md/md.h"
-#include "precision.h"
+#include "definitions.h"
 #include <omp.h>
 
 // Generate a 3D lattice of particles for a given spacing and box size.

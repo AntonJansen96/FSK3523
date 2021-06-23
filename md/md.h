@@ -1,9 +1,17 @@
 #ifndef MD_H
 #define MD_H
 
-#include "../precision.h"
+#include "../definitions.h"
 #include "atom/atom.h"
 #include <random>
+
+#ifdef SINGLE
+typedef float real;
+#endif
+
+#ifdef DOUBLE
+typedef double real;
+#endif 
 
 typedef std::vector<std::vector<real>> grid;
 
