@@ -1,0 +1,16 @@
+#!/usr/local/bin/vmd
+
+pbc box
+mol delrep 0 top
+
+mol selection {resname ARG}
+mol color Name
+mol representation CPK 3.800000 0.300000 25.000000 25.000000
+mol material Opaque
+mol addrep top
+
+mol selection {resname NEO}
+mol color Name
+mol representation CPK 3.200000 0.300000 25.000000 25.000000
+mol material Opaque
+mol addrep top

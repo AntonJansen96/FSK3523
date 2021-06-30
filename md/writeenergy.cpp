@@ -36,7 +36,7 @@ void MD::writeEnergies(size_t step) const
 
     if (not wroteHeader)
     {
-        fprintf(file, "step    T      Ekin       Ethermo     E_LJ      E_LJ_corr   E_LJ_tot   Econs\n");
+        fprintf(file, "#step   T      Ekin       Ethermo     E_LJ      E_LJ_corr   E_LJ_tot   Econs\n");
         wroteHeader = true;
     }
 
